@@ -1,0 +1,20 @@
+{
+  "name": "sista-bussen",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "SISTA BUSSEN - survivor-like mobile web game",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:e2e": "npm run build && playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.6",
+    "vitest": "^5.1.0"
+  }
+}

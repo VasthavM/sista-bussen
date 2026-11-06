@@ -1,0 +1,20 @@
+{
+  "name": "Sista Bussen",
+  "short_name": "Sista Bussen",
+  "description": "Survivor-like på busshållplatsen. Håll ut till 03:00.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0e12",
+  "theme_color": "#0b0e12",
+  "lang": "sv",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
