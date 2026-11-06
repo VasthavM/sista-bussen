@@ -11,11 +11,38 @@ import { nextFloat, nextRange, pickWeighted } from './rng';
 import { WORLD, pushEvent } from './state';
 import type { Enemy, EnemyType, SimState } from './types';
 
-const SPAWN_RADIUS_MIN = 380;
-const SPAWN_RADIUS_MAX = 470;
+const SPAWN_MARGIN_MIN = 44;
+const SPAWN_MARGIN_MAX = 96;
+
+/**
+ * Half extents of what the camera shows, in world units. `computeZoom` in
+ * src/render/draw.ts keeps 480 x 853 world units on screen for the shipped
+ * 9:16 portrait surface, so the player sees 240 units sideways and 427 down.
+ * Keep these in sync if the camera framing changes.
+ */
+const VIEW_HALF_W = 240;
+const VIEW_HALF_H = 427;
 
 function clamp(v: number, min: number, max: number): number {
   return v < min ? min : v > max ? max : v;
+}
+
+/**
+ * A point just past the camera edge in `angle` direction. The old fixed
+ * 380-470 px circle was never visible sideways (only 240 units of street fit on
+ * screen) and was inside the frame vertically, which made the opening look dead
+ * and let some enemies pop in. Following the frame keeps every spawn off-screen
+ * and roughly one walk-in away, whatever the direction.
+ */
+function edgePoint(state: SimState, angle: number, margin: number): { x: number; y: number } {
+  const c = Math.abs(Math.cos(angle));
+  const s = Math.abs(Math.sin(angle));
+  const toSide = c > 1e-4 ? VIEW_HALF_W / c : Number.POSITIVE_INFINITY;
+  const toTop = s > 1e-4 ? VIEW_HALF_H / s : Number.POSITIVE_INFINITY;
+  const dist = Math.min(toSide, toTop) + margin;
+  const x = clamp(state.player.x + Math.cos(angle) * dist, 30, WORLD.w - 30);
+  const y = clamp(state.player.y + Math.sin(angle) * dist, 30, WORLD.h - 30);
+  return { x, y };
 }
 
 export function enemyHpScale(state: SimState): number {
@@ -62,10 +89,7 @@ export function spawnEnemy(
 
 function ringPosition(state: SimState): { x: number; y: number } {
   const angle = nextFloat(state.rng) * Math.PI * 2;
-  const dist = nextRange(state.rng, SPAWN_RADIUS_MIN, SPAWN_RADIUS_MAX);
-  const x = clamp(state.player.x + Math.cos(angle) * dist, 30, WORLD.w - 30);
-  const y = clamp(state.player.y + Math.sin(angle) * dist, 30, WORLD.h - 30);
-  return { x, y };
+  return edgePoint(state, angle, nextRange(state.rng, SPAWN_MARGIN_MIN, SPAWN_MARGIN_MAX));
 }
 
 export function spawnAtRing(state: SimState, type: EnemyType, elite = false): Enemy {
@@ -75,9 +99,10 @@ export function spawnAtRing(state: SimState, type: EnemyType, elite = false): En
 
 export function spawnDoveFlock(state: SimState, count: number): void {
   const angle = nextFloat(state.rng) * Math.PI * 2;
-  const dist = nextRange(state.rng, 360, 440);
-  const cx = clamp(state.player.x + Math.cos(angle) * dist, 26, WORLD.w - 26);
-  const cy = clamp(state.player.y + Math.sin(angle) * dist, 26, WORLD.h - 26);
+  // Extra margin so the flock spread cannot put a dove inside the frame.
+  const center = edgePoint(state, angle, nextRange(state.rng, SPAWN_MARGIN_MAX, SPAWN_MARGIN_MAX + 40));
+  const cx = center.x;
+  const cy = center.y;
   for (let i = 0; i < count; i++) {
     if (state.enemies.length >= MAX_ENEMIES) state.enemies.shift();
     const spread = 46;
@@ -102,6 +127,10 @@ interface Burst {
 }
 
 const BURSTS: Burst[] = [
+  // Opening: a pigeon flock lands just outside the frame within the first
+  // seconds, so the street is never empty while the player learns the controls.
+  // Four weak duvor is a feel fix, not a difficulty change.
+  { at: 1.2, run: (s) => spawnDoveFlock(s, 4) },
   { at: 28, run: (s) => spawnDoveFlock(s, 8) },
   {
     at: 52,

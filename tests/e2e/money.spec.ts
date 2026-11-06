@@ -1,0 +1,176 @@
+/**
+ * The money loop, driven end to end: die, take the rewarded revive, exhaust the
+ * revive cap, double the fares, then spend Biljetter on a permanent upgrade and
+ * see it in the next run. Every price, cap and duration comes from the frozen
+ * catalog/shop modules — the only hardcoded numbers here are screen-independent
+ * arithmetic.
+ */
+import { expect, test, type Page } from '@playwright/test';
+
+import type { GameDebugApi } from '../../src/debug';
+import { upgradeCost, SHOP_UPGRADES } from '../../src/meta/shop';
+import { AD_PLACEMENTS } from '../../src/monetize/catalog';
+
+declare global {
+  interface Window {
+    __game?: GameDebugApi;
+  }
+}
+
+const CHARACTER = 'pensionaren' as const;
+const WEAPON = 'nyckel' as const;
+const UPGRADE = 'liv' as const;
+
+function digits(text: string | null): number {
+  return Number((text ?? '').replace(/[^0-9]/g, ''));
+}
+
+async function state(page: Page) {
+  return page.evaluate(() => window.__game!.getState());
+}
+
+async function profile(page: Page) {
+  return page.evaluate(() => window.__game!.profile());
+}
+
+/** Level-up cards pause the run; click through them so gameplay keeps moving. */
+async function drainLevelUps(page: Page): Promise<void> {
+  for (let i = 0; i < 20; i++) {
+    if ((await state(page)).phase !== 'levelup') return;
+    await page
+      .locator('.cards .card')
+      .first()
+      .click({ timeout: 2000 })
+      .catch(() => undefined);
+    await page.waitForTimeout(120);
+  }
+}
+
+/** Play until the run has earned Växel, without getting stuck on a card screen. */
+async function waitForChange(page: Page, minimum: number): Promise<void> {
+  const deadline = Date.now() + 30_000;
+  while (Date.now() < deadline) {
+    const current = await state(page);
+    if (current.change >= minimum) return;
+    if (current.phase === 'levelup') await drainLevelUps(page);
+    await page.waitForTimeout(150);
+  }
+  throw new Error(`No Växel earned within 30s (wanted ${minimum})`);
+}
+
+async function die(page: Page): Promise<void> {
+  await drainLevelUps(page);
+  await page.evaluate(() => window.__game!.endRun());
+  await expect.poll(async () => (await state(page)).phase).toBe('summary');
+  await expect(page.locator('.summary')).toBeVisible();
+}
+
+async function takeRevive(page: Page): Promise<void> {
+  const offer = page.locator('.summary__offer--hero');
+  await expect(offer).toHaveCount(1);
+  await offer.click();
+  // The mock provider plays a real countdown; wait for the run to resume.
+  await expect.poll(async () => (await state(page)).phase, { timeout: 20_000 }).toBe('run');
+}
+
+test('revive, fare doubling and permanent upgrades all move real state', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+
+  await page.goto('/');
+  await expect(page.locator('[data-screen="menu"]')).toBeVisible();
+
+  // 1. Baseline: one run at a known character, before any permanent upgrade.
+  await page.evaluate(
+    ({ character, weapon }) => window.__game!.startRun({ night: 1, character, weapon }),
+    { character: CHARACTER, weapon: WEAPON },
+  );
+  await expect.poll(async () => (await state(page)).phase).toBe('run');
+  const baseline = await state(page);
+  expect(baseline.maxHp).toBeGreaterThan(0);
+
+  // Earn real Växel first: doubling zero would prove nothing.
+  await waitForChange(page, 1);
+  const earned = await state(page);
+  expect(earned.change).toBeGreaterThan(0);
+
+  // 2. First death: the revive offer must show the remaining count from the catalog.
+  await die(page);
+  const cap = AD_PLACEMENTS.revive.cap;
+  const firstOffer = page.locator('.summary__offer--hero');
+  await expect(firstOffer).toContainText(`${cap} av ${cap} kvar`);
+
+  await takeRevive(page);
+  const revived = await state(page);
+  expect(revived.status).toBe('running');
+  expect(revived.hp).toBeGreaterThan(0);
+  expect(revived.hp).toBeGreaterThan(revived.maxHp * 0.5);
+  expect(revived.revivesUsed).toBe(1);
+
+  // 3. Second death: one revive left, then the allowance is gone.
+  await die(page);
+  await expect(page.locator('.summary__offer--hero')).toContainText(`${cap - 1} av ${cap} kvar`);
+  await takeRevive(page);
+  const afterSecond = await state(page);
+  expect(afterSecond.status).toBe('running');
+  expect(afterSecond.revivesUsed).toBe(cap);
+
+  await die(page);
+  await expect(page.locator('.summary__offer--hero')).toHaveCount(0);
+  expect((await state(page)).revivesUsed).toBe(cap);
+
+  // 4. Double fares: the offered Växel must become exactly 2x.
+  const payoutValue = page.locator('.summary__payout-value');
+  const beforeAd = digits(await payoutValue.textContent());
+  expect(beforeAd).toBeGreaterThan(0);
+
+  const doubleOffer = page.locator('.summary__offers button', { hasText: AD_PLACEMENTS.double_fares.title });
+  await doubleOffer.click();
+  await expect(page.locator('.summary__payout-label')).toHaveText('VÄXEL · DUBBLAD', { timeout: 20_000 });
+  const afterAd = digits(await payoutValue.textContent());
+  expect(afterAd).toBe(beforeAd * 2);
+  await expect(page.locator('.summary__offers button', { hasText: 'VÄXLET ÄR DUBBLAT' })).toBeDisabled();
+
+  // 5. Spend Biljetter on a permanent upgrade and watch the balance move.
+  await page.getByRole('button', { name: 'TILL KUREN' }).click();
+  await expect(page.locator('[data-screen="menu"]')).toBeVisible();
+
+  const levelBefore = (await profile(page)).upgrades[UPGRADE] ?? 0;
+  const cost = upgradeCost(UPGRADE, levelBefore);
+  await page.evaluate((amount) => window.__game!.grantTickets(amount), cost + 500);
+
+  const walletBefore = (await profile(page)).tickets;
+  expect(walletBefore).toBeGreaterThanOrEqual(cost);
+
+  await page.getByRole('button', { name: 'BUTIK', exact: true }).click();
+  await expect(page.locator('.shop')).toBeVisible();
+
+  const row = page.locator('.shoprow').filter({ hasText: SHOP_UPGRADES[UPGRADE].name });
+  const buy = row.locator('.shoprow__action');
+  expect(digits(await buy.textContent())).toBe(cost);
+  await buy.click();
+
+  const walletAfter = (await profile(page)).tickets;
+  const levelAfter = (await profile(page)).upgrades[UPGRADE] ?? 0;
+  expect(levelAfter).toBe(levelBefore + 1);
+  expect(walletBefore - walletAfter).toBe(cost);
+
+  await page.getByRole('button', { name: 'STÄNG', exact: true }).click();
+  await expect(page.locator('.shop')).toHaveCount(0);
+
+  // 6. The upgrade is real in the next run: same character, higher max HP.
+  await page.evaluate(
+    ({ character, weapon }) => window.__game!.startRun({ night: 1, character, weapon }),
+    { character: CHARACTER, weapon: WEAPON },
+  );
+  await expect.poll(async () => (await state(page)).phase).toBe('run');
+  const upgraded = await state(page);
+
+  // The per-level effect is read out of the shop definition, not restated here.
+  const hpPerLevel = digits(SHOP_UPGRADES[UPGRADE].description(1));
+  expect(hpPerLevel).toBeGreaterThan(0);
+  expect(upgraded.maxHp).toBe(baseline.maxHp + hpPerLevel * (levelAfter - levelBefore));
+  expect(upgraded.maxHp).toBeGreaterThan(baseline.maxHp);
+
+  expect(errors).toEqual([]);
+});

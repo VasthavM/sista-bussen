@@ -70,6 +70,9 @@ export interface DebugState {
   enemies: number;
   weapons: Array<{ id: WeaponId; level: number; evolved: boolean }>;
   kills: number;
+  status: 'running' | 'dead' | 'won';
+  change: number;
+  revivesUsed: number;
 }
 
 export class Game {
@@ -181,6 +184,9 @@ export class Game {
         enemies: 0,
         weapons: [],
         kills: 0,
+        status: 'running',
+        change: 0,
+        revivesUsed: 0,
       };
     }
     return {
@@ -194,6 +200,9 @@ export class Game {
       enemies: s.enemies.length,
       weapons: s.weapons.map((w) => ({ id: w.id, level: w.level, evolved: w.evolved })),
       kills: s.kills,
+      status: s.status,
+      change: Math.floor(s.change),
+      revivesUsed: s.revivesUsed,
     };
   }
 
@@ -205,6 +214,48 @@ export class Game {
   forceSpawn(type: EnemyType): void {
     if (!this.state) return;
     spawnAtRing(this.state, type, false);
+  }
+
+  /** Debug/e2e: end the run immediately; the summary opens on the next frame. */
+  endRun(): void {
+    const s = this.state;
+    if (!s || s.status !== 'running') return;
+    s.player.hp = 0;
+    s.status = 'dead';
+    this.accumulator = 0;
+    this.hitstop = 0;
+  }
+
+  /** Debug/e2e: set current HP without touching max HP. */
+  setHp(hp: number): void {
+    const s = this.state;
+    if (!s) return;
+    s.player.hp = Math.max(0, Math.min(s.player.maxHp, Math.floor(hp)));
+  }
+
+  /** Debug/e2e: enemies inside the camera frame right now. */
+  onScreenEnemies(): number {
+    const s = this.state;
+    if (!s) return 0;
+    const { halfW, halfH } = this.deps.renderer.viewBounds();
+    let count = 0;
+    for (const e of s.enemies) {
+      if (Math.abs(e.x - s.player.x) <= halfW + e.radius && Math.abs(e.y - s.player.y) <= halfH + e.radius) {
+        count += 1;
+      }
+    }
+    return count;
+  }
+
+  /** Debug/e2e: distance to the closest enemy, or Infinity when the street is empty. */
+  closestEnemy(): number {
+    const s = this.state;
+    if (!s) return Number.POSITIVE_INFINITY;
+    let best = Number.POSITIVE_INFINITY;
+    for (const e of s.enemies) {
+      best = Math.min(best, Math.hypot(e.x - s.player.x, e.y - s.player.y));
+    }
+    return best;
   }
 
   setPhase(phase: GamePhase): void {

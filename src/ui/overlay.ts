@@ -43,6 +43,7 @@ export class OverlayHost {
   }
 
   private emit(): void {
+    this.syncBodyState();
     for (const fn of this.listeners) {
       try {
         fn();
@@ -50,6 +51,16 @@ export class OverlayHost {
         /* a listener must never break an overlay */
       }
     }
+  }
+
+  /**
+   * `body.has-overlay` is the single CSS hook for "the game is covered". The HUD
+   * bottom cluster lives under the translucent backdrop, so it has to be hidden
+   * while a modal is up instead of bleeding through card edges.
+   */
+  private syncBodyState(): void {
+    if (typeof document === 'undefined') return;
+    document.body.classList.toggle('has-overlay', this.stack.length > 0);
   }
 
   /**

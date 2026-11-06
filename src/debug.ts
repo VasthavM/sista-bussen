@@ -13,9 +13,26 @@ export interface GameDebugApi {
   getState(): ReturnType<Game['getState']>;
   grantXp(n: number): void;
   forceSpawn(type: Parameters<Game['forceSpawn']>[0]): void;
+  /** End the current run immediately; the summary opens on the next frame. */
+  endRun(): void;
+  /** Set current HP without touching max HP. */
+  setHp(n: number): void;
+  /** Enemies inside the camera frame right now. */
+  onScreenEnemies(): number;
+  /** Distance to the closest enemy, Infinity when empty. */
+  closestEnemy(): number;
   startRun(opts?: Partial<RunSelection>): void;
   setPhase(phase: GamePhase): void;
-  profile(): { tickets: number; nightUnlocked: number; bestNight: number; totalRuns: number };
+  /** Add Biljetter to the profile (test/debug grants, never gameplay). */
+  grantTickets(n: number): void;
+  profile(): {
+    tickets: number;
+    nightUnlocked: number;
+    bestNight: number;
+    totalRuns: number;
+    weaponTokens: number;
+    upgrades: Record<string, number>;
+  };
   version: string;
 }
 

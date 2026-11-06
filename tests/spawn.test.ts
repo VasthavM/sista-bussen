@@ -1,8 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { MAX_ENEMIES, spawnRateAt } from '../src/sim/curve';
-import { directorStep, spawnEnemy } from '../src/sim/spawn';
+import { directorStep, spawnAtRing, spawnEnemy } from '../src/sim/spawn';
 import { createRun } from '../src/sim/state';
+import { stepRun } from '../src/sim/step';
 import { EMPTY_MODS, type RunConfig, type SimState } from '../src/sim/types';
+
+/**
+ * The shipped portrait camera shows 240 world units sideways and 427 down from
+ * the player (computeZoom in src/render/draw.ts). This is the contract the spawn
+ * ring has to respect; duplicating the numbers here is the point of the guard.
+ */
+const FRAME_HALF_W = 240;
+const FRAME_HALF_H = 427;
 
 function makeState(seed = 3, night = 1): SimState {
   const config: RunConfig = {
@@ -30,6 +39,30 @@ describe('spawn director', () => {
     advance(state, 10);
     expect(state.enemies.length).toBeGreaterThan(0);
     expect(state.enemies.length).toBeLessThan(30);
+  });
+
+  it('spawns just outside the camera frame, not far off screen', () => {
+    const state = makeState(7, 1);
+    for (let i = 0; i < 60; i++) spawnAtRing(state, 'fyllo');
+    for (const e of state.enemies) {
+      const dx = Math.abs(e.x - state.player.x);
+      const dy = Math.abs(e.y - state.player.y);
+      // Outside the frame: never visible at the instant it appears.
+      expect(dx > FRAME_HALF_W || dy > FRAME_HALF_H).toBe(true);
+      // Close enough that a walk-in reads as an approach, not an empty street.
+      expect(Math.hypot(dx, dy)).toBeLessThan(FRAME_HALF_H + 160);
+    }
+  });
+
+  it('has visible threats within the first four seconds', () => {
+    const state = makeState(7, 1);
+    const dt = 1 / 60;
+    for (let i = 0; i < Math.ceil(4 / dt); i++) stepRun(state, dt, { x: 0, y: 0 });
+    const onScreen = state.enemies.filter(
+      (e) =>
+        Math.abs(e.x - state.player.x) <= FRAME_HALF_W && Math.abs(e.y - state.player.y) <= FRAME_HALF_H,
+    );
+    expect(onScreen.length).toBeGreaterThan(0);
   });
 
   it('produces a harder night at the same timestamp', () => {

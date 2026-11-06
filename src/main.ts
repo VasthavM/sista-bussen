@@ -307,6 +307,10 @@ const debugApi: GameDebugApi = {
   getState: () => game.getState(),
   grantXp: (n) => game.grantXp(n),
   forceSpawn: (type) => game.forceSpawn(type),
+  endRun: () => game.endRun(),
+  setHp: (n) => game.setHp(n),
+  onScreenEnemies: () => game.onScreenEnemies(),
+  closestEnemy: () => game.closestEnemy(),
   startRun: (opts = {}) => {
     const selection: RunSelection = {
       night: opts.night ?? Math.max(1, profile.nightUnlocked),
@@ -316,11 +320,18 @@ const debugApi: GameDebugApi = {
     beginRun(selection);
   },
   setPhase: (phase) => game.setPhase(phase),
+  grantTickets: (n) => {
+    profile.tickets = Math.max(0, profile.tickets + Math.floor(n));
+    persist();
+    refreshMenu();
+  },
   profile: () => ({
     tickets: profile.tickets,
     nightUnlocked: profile.nightUnlocked,
     bestNight: profile.bestNight,
     totalRuns: profile.totalRuns,
+    weaponTokens: profile.weaponTokens,
+    upgrades: { ...profile.upgrades },
   }),
   version: VERSION,
 };

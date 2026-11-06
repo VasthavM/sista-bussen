@@ -12,12 +12,12 @@ import { beginWorld, computeViewport, computeZoom, endWorld, resetToScreen } fro
 import type { Draw, Viewport } from './draw';
 import { drawEnemies, drawPlayer, drawShadows } from './entities';
 import { drawGroundBloom, groundLayer, invalidateGroundLayer } from './ground';
-import { drawHud, drawStatusBand } from './hud';
 import { PAL, ENEMY_LOOK, WEAPON_LOOK } from './palette';
 import { DamageNumbers, ParticleField } from './particles';
 import { PostFx, drawHurtVeil, drawPauseVeil, resetPost } from './post';
 import { drawGlow, glowSprite } from './sprites';
-import { clamp } from './util';
+import { drawStick } from './stick';
+import { clamp, rgba } from './util';
 import { EffectTrails, WeaponFx, drawAreaEffects, drawEnemyShots, drawOrbs, drawProjectiles, drawWeaponSystems } from './weapons';
 
 export interface StickVisual {
@@ -43,6 +43,8 @@ export interface ViewState {
 export interface Renderer {
   resize(cssWidth: number, cssHeight: number, dpr: number): void;
   drawFrame(state: SimState, view: ViewState): void;
+  /** Half extents of the play surface in world units, for visibility checks. */
+  viewBounds(): { halfW: number; halfH: number };
   invalidateGround(): void;
   destroy(): void;
 }
@@ -151,6 +153,10 @@ class RendererImpl implements Renderer {
     invalidateGroundLayer();
   }
 
+  viewBounds(): { halfW: number; halfH: number } {
+    return { halfW: this.vp.w / (2 * this.zoom), halfH: this.vp.h / (2 * this.zoom) };
+  }
+
   destroy(): void {
     this.destroyed = true;
     this.particles.clear();
@@ -228,9 +234,9 @@ class RendererImpl implements Renderer {
     this.drawWorld(d);
     this.post.draw(d);
     drawHurtVeil(d);
-    drawHud(d);
+    drawStick(d);
     if (this.fx.boss > 0.01) this.drawBossPulse(d);
-    if (state.status !== 'running' && !view.dimmed) drawStatusBand(d);
+    if (state.status !== 'running' && !view.dimmed) this.drawStatusBand(d);
     if (this.fx.evolve > 0.01) this.drawEvolutionBanner(d);
     drawPauseVeil(d);
 
@@ -523,6 +529,22 @@ class RendererImpl implements Renderer {
     ctx.fillText('UTVECKLAD', vp.x + vp.w / 2 + 2, y + 2);
     ctx.fillStyle = PAL.amberWarm;
     ctx.fillText('UTVECKLAD', vp.x + vp.w / 2, y);
+    ctx.restore();
+  }
+
+  private drawStatusBand(d: Draw): void {
+    const st = d.state;
+    const ctx = d.ctx;
+    const vp = d.vp;
+    const won = st.status === 'won';
+    const y = vp.y + vp.h * 0.42;
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const size = Math.round(clamp(vp.w * 0.085, 20, 40));
+    ctx.font = `700 ${size}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+    ctx.fillStyle = won ? rgba(PAL.green, 0.95) : rgba(PAL.danger, 0.95);
+    ctx.fillText(won ? 'BUSSEN GÅR' : 'DU MISSADE BUSSEN', vp.x + vp.w / 2, y);
     ctx.restore();
   }
 

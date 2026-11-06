@@ -58,6 +58,12 @@ test.describe('Sista Bussen', () => {
       .poll(async () => page.evaluate(() => window.__game!.getState().enemies), { timeout: 20_000 })
       .toBeGreaterThan(0);
 
+    // The opening must not be an empty street: a threat has to be inside the
+    // camera frame within the first seconds, not still walking in from nowhere.
+    await expect
+      .poll(async () => page.evaluate(() => window.__game!.onScreenEnemies()), { timeout: 12_000 })
+      .toBeGreaterThan(0);
+
     // 4. Screenshot the live run before the cards open.
     const moved = await page.evaluate(() => window.__game!.getState());
     expect(moved.enemies).toBeGreaterThan(0);
@@ -96,6 +102,27 @@ test.describe('Sista Bussen', () => {
     const afterPick = await page.evaluate(() => window.__game!.getState());
     expect(afterPick.weapons.length).toBeGreaterThan(0);
     await page.screenshot({ path: 'screenshots/04-after-pick.png' });
+
+    // 7. Combat evidence: play to ~25s, clearing level-up cards as they open,
+    // and capture the street with enemies engaged and kills on the board.
+    const deadline = Date.now() + 40_000;
+    while (Date.now() < deadline) {
+      const live = await page.evaluate(() => window.__game!.getState());
+      if (live.elapsed >= 25 && live.phase === 'run') break;
+      if (live.phase === 'levelup') {
+        await page
+          .locator('.cards .card')
+          .first()
+          .click({ timeout: 2000 })
+          .catch(() => undefined);
+      }
+      await page.waitForTimeout(150);
+    }
+    await expect.poll(async () => page.evaluate(() => window.__game!.getState().kills), { timeout: 10_000 }).toBeGreaterThan(2);
+    const combat = await page.evaluate(() => window.__game!.getState());
+    expect(combat.elapsed).toBeGreaterThanOrEqual(25);
+    expect(combat.enemies).toBeGreaterThan(0);
+    await page.screenshot({ path: 'screenshots/05-combat.png' });
 
     expect(errors).toEqual([]);
   });
