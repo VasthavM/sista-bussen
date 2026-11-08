@@ -1,5 +1,5 @@
 import { ENEMIES, WEAPONS } from './content';
-import { FUEL_DROP_VALUE, addFuel, dropMaterials, rollFuelDrop } from './objective';
+import { addFuel, dropMaterials, rollFuelDrop } from './objective';
 import { nextFloat, type Rng } from './rng';
 import { WORLD, addXp, pushEvent } from './state';
 import type {
@@ -164,7 +164,8 @@ function killEnemy(state: SimState, enemy: Enemy): void {
   state.change += def.change * (enemy.elite ? 2.5 : 1) * state.player.luck;
   spawnOrb(state, enemy.x, enemy.y, Math.round(def.xp * (enemy.elite ? 2.2 : 1)), 'xp');
   dropMaterials(state, enemy);
-  if (rollFuelDrop(state)) spawnOrb(state, enemy.x, enemy.y, FUEL_DROP_VALUE, 'fuel', state.dropRng);
+  const fuel = rollFuelDrop(state, enemy);
+  if (fuel > 0) spawnOrb(state, enemy.x, enemy.y, fuel, 'fuel', state.dropRng);
   pushEvent(state, 'kill', enemy.x, enemy.y, def.xp, enemy.type);
   addShake(state, enemy.type === 'nattvakt' || enemy.type === 'chauffor' ? 14 : enemy.elite ? 7 : 4);
 }

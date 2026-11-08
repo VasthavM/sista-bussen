@@ -7,14 +7,16 @@ import {
   CANISTER_SCRAP,
   CANISTER_SUPPLIES,
   ELITE_PARTS,
+  FUEL_BOSS_VALUE,
   FUEL_DROP_CHANCE,
+  FUEL_ELITE_VALUE,
   fuelQuotaFor,
   updateObjective,
 } from '../src/sim/objective';
 import { spawnEnemy } from '../src/sim/spawn';
-import { CANISTER_FUEL, CANISTER_SURPLUS, WORLD, clearEvents, createRun, layoutMap } from '../src/sim/state';
+import { CANISTER_FUEL, CANISTER_SHARE, WORLD, clearEvents, createRun, layoutMap } from '../src/sim/state';
 import { stepRun } from '../src/sim/step';
-import type { SimEventType, SimState } from '../src/sim/types';
+import type { EnemyType, SimEventType, SimState } from '../src/sim/types';
 import { runConfig } from './helpers';
 
 const make = (seed = 5, depth = 1, over = {}) => createRun(runConfig(seed, depth, over));
@@ -25,7 +27,7 @@ function events(state: SimState, type: SimEventType): number {
   return n;
 }
 
-function kill(state: SimState, type: 'fyllo' | 'duva' | 'nattvakt', elite = false): void {
+function kill(state: SimState, type: EnemyType, elite = false): void {
   const e = spawnEnemy(state, type, 100, 100, elite);
   dealDamage(state, e, e.hp + 1, false);
 }
@@ -36,14 +38,28 @@ describe('map layout', () => {
     expect(layoutMap(8, 50)).not.toEqual(layoutMap(7, 50));
   });
 
-  it('carries far more fuel in canisters than the quota, at every depth', () => {
+  it('keeps canisters a bonus: about CANISTER_SHARE of the quota, so kills carry the rest', () => {
     for (const depth of [1, 3, 5, 9]) {
       for (const seed of [1, 2, 3, 4, 5, 6]) {
         const quota = fuelQuotaFor(depth);
         const { canisters } = layoutMap(seed, quota);
         const total = canisters.reduce((s, c) => s + c.fuel, 0);
-        expect(total).toBeGreaterThanOrEqual(quota * CANISTER_SURPLUS);
+        expect(total).toBeGreaterThanOrEqual(quota * CANISTER_SHARE);
+        expect(total).toBeLessThanOrEqual(quota * CANISTER_SHARE + 2 * CANISTER_FUEL);
         expect(canisters.every((c) => c.fuel === CANISTER_FUEL)).toBe(true);
+      }
+    }
+  });
+
+  it('puts every other canister out on the border and away from the bus', () => {
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+      const { bus, canisters } = layoutMap(seed, fuelQuotaFor(1));
+      const risky = canisters.filter((c) => c.risky);
+      expect(risky.length).toBe(Math.floor(canisters.length / 2));
+      for (const c of risky) {
+        const edge = Math.min(c.x, c.y, WORLD.w - c.x, WORLD.h - c.y);
+        expect(edge).toBeLessThanOrEqual(150);
+        expect(Math.hypot(c.x - bus.x, c.y - bus.y)).toBeGreaterThan(300);
       }
     }
   });
@@ -55,21 +71,13 @@ describe('map layout', () => {
       const cy = WORLD.h / 2;
       expect(Math.hypot(bus.x - cx, bus.y - cy)).toBeGreaterThan(300);
       for (const c of canisters) {
-        expect(c.x).toBeGreaterThanOrEqual(90);
-        expect(c.x).toBeLessThanOrEqual(WORLD.w - 90);
-        expect(c.y).toBeGreaterThanOrEqual(90);
-        expect(c.y).toBeLessThanOrEqual(WORLD.h - 90);
+        expect(c.x).toBeGreaterThanOrEqual(60);
+        expect(c.x).toBeLessThanOrEqual(WORLD.w - 60);
+        expect(c.y).toBeGreaterThanOrEqual(60);
+        expect(c.y).toBeLessThanOrEqual(WORLD.h - 60);
         expect(Math.hypot(c.x - cx, c.y - cy)).toBeGreaterThan(100);
       }
     }
-  });
-
-  it('releases canisters over time, the first early, the last well after the old 03:00', () => {
-    const { canisters } = layoutMap(3, fuelQuotaFor(1));
-    const times = canisters.map((c) => c.at);
-    expect(times).toEqual([...times].sort((a, b) => a - b));
-    expect(times[0]).toBeLessThan(40);
-    expect(times[times.length - 1]).toBeGreaterThan(240);
   });
 
   it('keeps the bus fixed for the whole map', () => {
@@ -83,7 +91,6 @@ describe('map layout', () => {
 describe('fuel', () => {
   it('collects a canister inside the pickup radius and not outside it', () => {
     const state = make(5);
-    state.time = 400;
     const c = state.canisters[0];
     state.player.x = c.x + state.player.pickup + 20;
     state.player.y = c.y;
@@ -96,32 +103,41 @@ describe('fuel', () => {
     expect(state.fuel).toBe(CANISTER_FUEL);
   });
 
-  it('does not collect a canister before it is released', () => {
-    const state = make(5);
-    const c = state.canisters[state.canisters.length - 1];
-    state.time = c.at - 1;
-    state.player.x = c.x;
-    state.player.y = c.y;
-    updateObjective(state);
-    expect(c.active).toBe(true);
-    state.time = c.at + 1;
-    updateObjective(state);
-    expect(c.active).toBe(false);
-  });
-
-  it('drops fuel orbs from zombies at the seeded chance, and picking one up adds fuel', () => {
+  it('drops fuel from zombies at a per-type chance, tougher ones more often, and picking one up adds fuel', () => {
     const fresh = make(99);
-    for (let i = 0; i < 400; i++) kill(fresh, 'duva');
-    const dropped = fresh.orbs.filter((o) => o.kind === 'fuel').length;
-    expect(dropped).toBeGreaterThan(400 * FUEL_DROP_CHANCE * 0.4);
-    expect(dropped).toBeLessThan(400 * FUEL_DROP_CHANCE * 2.2);
+    const n = 600;
+    const dropsFor = (type: 'duva' | 'vaktmastare') => {
+      const s = make(99);
+      let got = 0;
+      for (let i = 0; i < n; i++) {
+        const before = s.orbs.filter((o) => o.kind === 'fuel' && o.active).length;
+        kill(s, type);
+        s.orbs = s.orbs.filter((o) => o.kind !== 'xp');
+        got += s.orbs.filter((o) => o.kind === 'fuel' && o.active).length - before;
+      }
+      return got;
+    };
+    const weak = dropsFor('duva');
+    const tough = dropsFor('vaktmastare');
+    expect(weak).toBeGreaterThan(n * FUEL_DROP_CHANCE.duva * 0.5);
+    expect(weak).toBeLessThan(n * FUEL_DROP_CHANCE.duva * 1.6);
+    expect(tough).toBeGreaterThan(weak * 2);
 
+    for (let i = 0; i < 100; i++) kill(fresh, 'duva');
     const orb = fresh.orbs.find((o) => o.kind === 'fuel')!;
     orb.x = fresh.player.x;
     orb.y = fresh.player.y;
     updateOrbs(fresh, 1 / 60);
     expect(orb.active).toBe(false);
     expect(fresh.fuel).toBe(orb.value);
+  });
+
+  it('always drops from elites (2) and bosses (10)', () => {
+    const s = make(5);
+    kill(s, 'fyllo', true);
+    kill(s, 'nattvakt', true);
+    const values = s.orbs.filter((o) => o.kind === 'fuel').map((o) => o.value);
+    expect(values.sort((a, b) => a - b)).toEqual([FUEL_ELITE_VALUE, FUEL_BOSS_VALUE]);
   });
 
   it('rolls fuel drops on their own stream: the combat rng is unaffected by the roll', () => {

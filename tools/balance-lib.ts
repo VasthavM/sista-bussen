@@ -17,7 +17,7 @@ import type {
 import { WEAPONS, WEAPON_ORDER } from '../src/sim/content';
 import { makeRng, nextFloat } from '../src/sim/rng';
 import { defaultMapConfig, fuelQuotaFor } from '../src/sim/objective';
-import { WORLD, createRun } from '../src/sim/state';
+import { CANISTER_FUEL, WORLD, createRun } from '../src/sim/state';
 import { stepRun } from '../src/sim/step';
 import { applyChoice, rollChoices } from '../src/sim/upgrades';
 
@@ -46,6 +46,9 @@ export interface RunSummary {
   endTime: number;
   /** Seconds when the quota was met, or null if it never was. */
   quotaTime: number | null;
+  /** Kills when the quota was met, and the share of the quota that came from kill drops (not canisters). */
+  killsAtQuota: number;
+  killFuelShare: number;
   fuel: number;
   finalLevel: number;
   kills: number;
@@ -66,6 +69,13 @@ export interface ConfigReport {
   endTime: { median: number; p10: number; p90: number };
   /** Median seconds to meet the quota, over runs that did. */
   timeToQuota: { median: number | null; runs: number };
+  /** Median share of the fuel at quota time that came from zombie drops, over runs that met the quota. */
+  killFuelShare: number | null;
+  /**
+   * Pearson correlation between kills per minute (until the quota) and time to quota, over runs that met it.
+   * Negative means faster killers fill the gauge sooner. Null with fewer than 3 runs.
+   */
+  killRateVsQuotaTime: number | null;
   /** Median seconds to extract, over runs that did. */
   timeToExtract: { median: number | null; runs: number };
   /** Level when the map ended, only for runs that extracted. */
@@ -140,7 +150,7 @@ export function botTarget(state: SimState): { x: number; y: number } | null {
   let best: { x: number; y: number } | null = null;
   let bestD = Number.POSITIVE_INFINITY;
   for (const c of state.canisters) {
-    if (!c.active || state.time < c.at) continue;
+    if (!c.active) continue;
     const d = Math.hypot(c.x - state.player.x, c.y - state.player.y);
     if (d < bestD) {
       best = c;
@@ -322,11 +332,18 @@ export function simulateMap(cfg: BalanceConfig, seed: number): RunSummary {
   const { damage } = attachAttribution(state);
   let peak = 0;
   let quotaTime: number | null = null;
+  let killsAtQuota = 0;
+  let killFuelShare = 0;
 
   while (state.status === 'running' && state.time < MAX_MAP_SECONDS) {
     stepRun(state, DT, botInput(state));
     if (state.enemies.length > peak) peak = state.enemies.length;
-    if (quotaTime === null && state.quotaMet) quotaTime = state.time;
+    if (quotaTime === null && state.quotaMet) {
+      quotaTime = state.time;
+      killsAtQuota = state.kills;
+      const fromCanisters = state.canisters.filter((c) => !c.active).length * CANISTER_FUEL;
+      killFuelShare = Math.max(0, 1 - fromCanisters / Math.max(1, state.fuel));
+    }
     while (state.pendingLevelUps > 0) {
       const choices = rollChoices(state, 3);
       if (choices.length === 0) {
@@ -342,6 +359,8 @@ export function simulateMap(cfg: BalanceConfig, seed: number): RunSummary {
     extracted: state.status === 'extracted',
     endTime: state.time,
     quotaTime,
+    killsAtQuota,
+    killFuelShare,
     fuel: state.fuel,
     finalLevel: state.level,
     kills: state.kills,
@@ -371,6 +390,22 @@ export function percentile(values: number[], q: number): number {
 const r2 = (v: number) => Math.round(v * 100) / 100;
 const r4 = (v: number) => Math.round(v * 10000) / 10000;
 
+export function pearson(xs: number[], ys: number[]): number | null {
+  const n = xs.length;
+  if (n < 3) return null;
+  const mx = xs.reduce((a, b) => a + b, 0) / n;
+  const my = ys.reduce((a, b) => a + b, 0) / n;
+  let sxy = 0;
+  let sxx = 0;
+  let syy = 0;
+  for (let i = 0; i < n; i++) {
+    sxy += (xs[i] - mx) * (ys[i] - my);
+    sxx += (xs[i] - mx) ** 2;
+    syy += (ys[i] - my) ** 2;
+  }
+  return sxx > 0 && syy > 0 ? r2(sxy / Math.sqrt(sxx * syy)) : null;
+}
+
 const median = (values: number[]): number | null => (values.length ? r2(percentile(values, 0.5)) : null);
 
 export function summarise(cfg: BalanceConfig, runs: RunSummary[]): ConfigReport {
@@ -395,6 +430,11 @@ export function summarise(cfg: BalanceConfig, runs: RunSummary[]): ConfigReport 
     quotaRate: r4(quota.length / n),
     endTime: { median: r2(percentile(ends, 0.5)), p10: r2(percentile(ends, 0.1)), p90: r2(percentile(ends, 0.9)) },
     timeToQuota: { median: median(quota.map((r) => r.quotaTime as number)), runs: quota.length },
+    killFuelShare: median(quota.map((r) => r.killFuelShare)),
+    killRateVsQuotaTime: pearson(
+      quota.map((r) => (r.killsAtQuota / (r.quotaTime as number)) * 60),
+      quota.map((r) => r.quotaTime as number),
+    ),
     timeToExtract: { median: median(out.map((r) => r.endTime)), runs: out.length },
     levelAtExtract: {
       median: out.length ? percentile(out.map((r) => r.finalLevel), 0.5) : null,
@@ -425,9 +465,9 @@ export function renderConfigTable(r: ConfigReport): string {
   const lines = [
     `### Depth ${c.depth}, quota ${c.quota}, ${c.character}, start ${c.weapon}, policy ${c.policy}, N=${r.runs}, seed ${c.baseSeed}`,
     '',
-    '| extraction rate | reached quota | median time to quota | median time to extract | level at extract | peak live enemies (median / max) |',
-    '|---|---|---|---|---|---|',
-    `| ${pct(r.extractRate)} | ${pct(r.quotaRate)} | ${mmss(r.timeToQuota.median)} (n=${r.timeToQuota.runs}) | ${mmss(r.timeToExtract.median)} (n=${r.timeToExtract.runs}) | ${lvl} (n=${r.levelAtExtract.runsReached}) | ${r.peakEnemies.median} / ${r.peakEnemies.max} |`,
+    '| extraction rate | reached quota | median time to quota | from kills | corr(kills/min, time to quota) | median time to extract | level at extract | peak live enemies (median / max) |',
+    '|---|---|---|---|---|---|---|---|',
+    `| ${pct(r.extractRate)} | ${pct(r.quotaRate)} | ${mmss(r.timeToQuota.median)} (n=${r.timeToQuota.runs}) | ${r.killFuelShare === null ? 'n/a' : pct(r.killFuelShare)} | ${r.killRateVsQuotaTime ?? 'n/a'} | ${mmss(r.timeToExtract.median)} (n=${r.timeToExtract.runs}) | ${lvl} (n=${r.levelAtExtract.runsReached}) | ${r.peakEnemies.median} / ${r.peakEnemies.max} |`,
     '',
     '| weapon | owned | evolved | damage share |',
     '|---|---|---|---|',
@@ -448,11 +488,11 @@ export function renderBaselineTables(reports: ConfigReport[]): string {
     const first = rs[0].config;
     out.push(`### Start weapon: ${start} (${WEAPONS[start].name})`, '');
     out.push(`Policy \`${first.policy}\`, ${first.character}, N=${first.n} per depth, base seed ${first.baseSeed}.`, '');
-    out.push('| depth | quota | extraction rate | reached quota | time to quota (median) | time to extract (median) | end time median (p10-p90) | median final level | peak enemies (median / max) |');
-    out.push('|---|---|---|---|---|---|---|---|---|');
+    out.push('| depth | quota | extraction rate | reached quota | time to quota (median) | fuel from kills | corr(kills/min, time to quota) | time to extract (median) | end time median (p10-p90) | median final level | peak enemies (median / max) |');
+    out.push('|---|---|---|---|---|---|---|---|---|---|---|');
     for (const r of rs) {
       out.push(
-        `| ${r.config.depth} | ${r.config.quota} | ${pct(r.extractRate)} | ${pct(r.quotaRate)} | ${mmss(r.timeToQuota.median)} | ${mmss(r.timeToExtract.median)} | ${mmss(r.endTime.median)} (${mmss(r.endTime.p10)}-${mmss(r.endTime.p90)}) | ${r.finalLevelMedian} | ${r.peakEnemies.median} / ${r.peakEnemies.max} |`,
+        `| ${r.config.depth} | ${r.config.quota} | ${pct(r.extractRate)} | ${pct(r.quotaRate)} | ${mmss(r.timeToQuota.median)} | ${r.killFuelShare === null ? 'n/a' : pct(r.killFuelShare)} | ${r.killRateVsQuotaTime ?? 'n/a'} | ${mmss(r.timeToExtract.median)} | ${mmss(r.endTime.median)} (${mmss(r.endTime.p10)}-${mmss(r.endTime.p90)}) | ${r.finalLevelMedian} | ${r.peakEnemies.median} / ${r.peakEnemies.max} |`,
       );
     }
     out.push('', `Evolved % of all runs / damage share, per weapon:`, '');

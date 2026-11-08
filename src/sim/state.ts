@@ -20,19 +20,18 @@ export const EVENT_POOL = 512;
 
 /** Fuel in one canister. */
 export const CANISTER_FUEL = 5;
-/**
- * Canisters alone carry this multiple of the quota, so the quota never depends on zombie drops.
- * They are released over time (supply drops), which is what keeps a map from being a 60 s errand.
- */
-export const CANISTER_SURPLUS = 1.4;
-/** Canisters appear one by one: the first after this many seconds, the rest spread over `CANISTER_SPAN`. */
-export const CANISTER_FIRST_AT = 6;
-export const CANISTER_SPAN = 420;
+/** Canisters are a bonus: together they carry about this share of the quota. Kills carry the rest. */
+export const CANISTER_SHARE = 0.3;
 const CANISTER_MIN_GAP = 100;
+/** Risky canisters sit this close to the map border... */
+const EDGE_BAND = 150;
+/** ...and at least this far from the bus. */
+const RISKY_BUS_DISTANCE = 350;
 
 /**
  * Seeded placement of the bus and the canisters. Uses its own RNG stream (derived from the map
  * seed) so the layout never consumes the combat stream. Same seed and quota give the same layout.
+ * Every other canister is "risky": out on the border, far from the bus, so grabbing it is a choice.
  */
 export function layoutMap(seed: number, fuelQuota: number): { bus: Bus; canisters: Canister[] } {
   const rng: Rng = makeRng((seed ^ 0xa5f00d) >>> 0);
@@ -44,23 +43,31 @@ export function layoutMap(seed: number, fuelQuota: number): { bus: Bus; canister
     x: Math.min(WORLD.w - 120, Math.max(120, cx + Math.cos(angle) * reach)),
     y: Math.min(WORLD.h - 120, Math.max(120, cy + Math.sin(angle) * reach)),
   };
-  const count = Math.ceil((fuelQuota * CANISTER_SURPLUS) / CANISTER_FUEL) + nextInt(rng, 3);
+  const count = Math.ceil((fuelQuota * CANISTER_SHARE) / CANISTER_FUEL) + nextInt(rng, 2);
   const canisters: Canister[] = [];
   for (let i = 0; i < count; i++) {
+    const risky = i % 2 === 1;
     let x = 0;
     let y = 0;
-    // shortcut: 40 tries then accept the last candidate, only matters when the map is nearly full.
-    for (let tries = 0; tries < 40; tries++) {
+    // shortcut: 60 tries then accept the last candidate, only matters when the map is nearly full.
+    for (let tries = 0; tries < 60; tries++) {
       x = nextRange(rng, 90, WORLD.w - 90);
       y = nextRange(rng, 90, WORLD.h - 90);
+      if (risky) {
+        // Pull one axis into the border band.
+        const side = nextInt(rng, 4);
+        if (side === 0) x = nextRange(rng, 60, EDGE_BAND);
+        else if (side === 1) x = nextRange(rng, WORLD.w - EDGE_BAND, WORLD.w - 60);
+        else if (side === 2) y = nextRange(rng, 60, EDGE_BAND);
+        else y = nextRange(rng, WORLD.h - EDGE_BAND, WORLD.h - 60);
+      }
       const clear =
         Math.hypot(x - cx, y - cy) > 150 &&
-        Math.hypot(x - bus.x, y - bus.y) > 130 &&
+        Math.hypot(x - bus.x, y - bus.y) > (risky ? RISKY_BUS_DISTANCE : 130) &&
         canisters.every((c) => Math.hypot(x - c.x, y - c.y) > CANISTER_MIN_GAP);
       if (clear) break;
     }
-    const at = CANISTER_FIRST_AT + ((i + nextFloat(rng)) / count) * CANISTER_SPAN;
-    canisters.push({ active: true, at, x, y, fuel: CANISTER_FUEL });
+    canisters.push({ active: true, risky, x, y, fuel: CANISTER_FUEL });
   }
   return { bus, canisters };
 }

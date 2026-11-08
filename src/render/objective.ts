@@ -61,7 +61,7 @@ function drawBus(d: Draw): void {
 export function drawObjective(d: Draw): void {
   const st = d.state;
   for (const c of st.canisters) {
-    if (c.active && d.t >= c.at && visible(d, c.x, c.y, 30)) drawCanister(d, c.x, c.y);
+    if (c.active && visible(d, c.x, c.y, 30)) drawCanister(d, c.x, c.y);
   }
   if (visible(d, st.bus.x, st.bus.y, BUS_W)) drawBus(d);
 }
@@ -76,7 +76,7 @@ export function drawGoalArrow(d: Draw): void {
     let best = Number.POSITIVE_INFINITY;
     let found = false;
     for (const c of st.canisters) {
-      if (!c.active || d.t < c.at) continue;
+      if (!c.active) continue;
       const dist = Math.hypot(c.x - st.player.x, c.y - st.player.y);
       if (dist < best) {
         best = dist;

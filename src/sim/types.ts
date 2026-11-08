@@ -195,8 +195,8 @@ export interface SpawnState {
 /** A fuel canister lying on the map. Static; collected inside the player's pickup radius. */
 export interface Canister {
   active: boolean;
-  /** Sim second at which the canister appears (supply drops are released over time). */
-  at: number;
+  /** Out on the map edge, away from the start and the bus: worth grabbing only if you accept the risk. */
+  risky: boolean;
   x: number;
   y: number;
   fuel: number;
