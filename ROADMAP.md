@@ -8,6 +8,8 @@ Written 2026-11-08. Decisions marked **NEEDS MAX** block the phase they sit in.
 
 ## Phase 1 — make updates controllable, then fix the menu
 
+**Status: done** (#6, #5, plus #9 and #10).
+
 **#6 Boot screen and controlled update flow** — do this first, before any visible change.
 
 - Why first: `public/sw.js` currently forces a new version on the running app (`skipWaiting` + `clients.claim`)
@@ -47,9 +49,12 @@ Phases 1–2 are not wasted by it: every one of them ships to the store build to
 
 - **Wrapper, not a rewrite.** The game stays the same Vite build and gets a native shell so it can be
   signed, installed and updated through the store. The web build keeps working as it does today.
-- **Two update lanes, and they are not equivalent.** JS and assets can keep updating through the service
-  worker flow from #6. Anything native (a new plugin, a permission, an SDK) needs a store submission and
-  review. This is why #6 is the foundation of the whole roadmap.
+- **Updates in the store build.** Store-only at launch. The #8 spike verified in the iOS Simulator that
+  `navigator.serviceWorker` is undefined under `capacitor://localhost`, so the service worker flow from #6
+  does not run inside the wrapper; every change, JS and assets included, ships through a store submission.
+  Capgo `capacitor-updater` is a possible later lane, decided after the first approved build. A remote
+  `server.url` is rejected: it is not meant for production and carries App Review 4.2 and 2.5.2 risk.
+  The web build keeps its service worker lane. See #8.
 - **Commerce changes hands.** Apple requires its own in-app purchase for digital goods sold inside the app —
   guideline 3.1.1, read in full: in-game currencies and unlocked content "must use in-app purchase", may not
   expire, and need a restore path. That is what the `IapProvider` mock in `src/monetize/ads.ts` exists to

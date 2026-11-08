@@ -24,15 +24,14 @@ build pack `dockerfile`. The `Dockerfile` builds with `npm ci && npm run build` 
 nginx; `docker/nginx.conf` owns the caching and content-type rules (service worker and manifest are
 `no-cache`, `/assets/` is immutable, `.webmanifest` is served as `application/manifest+json`).
 
-Temporary host, because the subdomain has no DNS record yet:
+Live URL: <https://sista-bussen.vasthavm.com>.
 
-```
-https://q1khvfvk2w9tho9rc5psbhxx.187.124.132.205.sslip.io
-```
+The old `sslip.io` host (`https://q1khvfvk2w9tho9rc5psbhxx.187.124.132.205.sslip.io`) stays attached as a
+second Coolify domain on the same application. Do not remove it: `localStorage` is per-origin, so installs
+made from that host would lose their saves.
 
-To move it to `sista-bussen.vasthavm.com`: add `A sista-bussen` → `187.124.132.205` at the DNS provider,
-change the application's domain in Coolify to `https://sista-bussen.vasthavm.com`, redeploy, and let
-Traefik issue the certificate.
+The `Dockerfile` takes a `SOURCE_COMMIT` build arg (Coolify passes the deployed commit) and stamps it into
+the version line shown on the boot screen and in settings.
 
 Deploys are manual: push to `main`, then trigger a deploy in Coolify. Coolify's `static` build pack does
 **not** work for this repo — it copies pre-built files and never runs `npm run build`, and `dist/` is
@@ -104,8 +103,11 @@ are always player-initiated and always show what the reward is before the player
 ## Tests
 
 ```bash
-npm test              # 59 unit tests: curves, spawn, upgrades, economy, save, ads, full-run win check
-npx playwright test   # 2 e2e specs: boot/play/level-up, and revive/double-fares/shop/next-run
+npm test              # 74 unit tests in 9 files: curves, spawn, upgrades, loadout, economy, save, ads, ad gate, full-run win check
+npx playwright test   # 38 e2e tests in 5 specs (game, money, menu, adgate, update): 28 on the chromium project,
+                      # plus the 10 update.spec.ts tests again on the webkit project (iPhone 13 profile)
+PW_PORT=4193 npx playwright test   # PW_PORT picks the preview-server port (default 4173) so concurrent
+                                   # worktrees do not share, and kill, each other's server
 node tools/gallery.mjs  # regenerate the sprite sheet at screenshots/06-gallery.png
 node tools/icons.mjs    # regenerate the install icons in public/ (PNGs + vector favicon)
 ```
@@ -141,6 +143,7 @@ starts a fresh profile rather than crashing. Audio mute lives under `sista-busse
 ## Known gaps
 
 - Real ad and billing SDKs are not integrated; mocks only.
-- Analytics has a typed event list and a console sink, no transport.
+- Analytics has a typed event list and a console sink. The transport is still missing, so no events leave the device.
+- Balance baseline is pending in #11; difficulty numbers have not been measured against it yet.
 - Sprite art is procedural and stylized; characters read at in-game scale but are not hand-drawn.
 - Night difficulty beyond night 3 is untuned by hand — it scales mechanically from `nightDifficulty`.
