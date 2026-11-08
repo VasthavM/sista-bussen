@@ -11,8 +11,8 @@ Design: `specs/design/v2-last-bus.md` (approved 2026-11-09). Contract: `specs/ti
 | # | Ticket | status | mode | runs (after) | owner / branch |
 |---|---|---|---|---|---|
 | 11 | Balance harness + baseline | done | solo | — | `totto/11-balance` @ `7d988a3`; being merged into `totto/v2` |
-| 12 | Sim: fuel quota, materials, bus extraction (unfreezes sim) | ready | solo | 11 | wave 1 |
-| 13 | Route generator, checkpoints, save v3 | ready | solo | — | wave 1, parallel with #12 under the contract |
+| 12 | Sim: fuel quota, materials, bus extraction (unfreezes sim) | in-progress | solo | 11 | worker `w12-sim` on `totto/12-sim` off `totto/v2` @ `deafa2b`, port 4185 |
+| 13 | Route generator, checkpoints, save v3 | done | solo | — | `totto/13-route` @ `ab59aa0` (104/104 unit, 38/38 e2e, docker ok); merging into `totto/v2`. Open: layers vs real branching paths (Max) |
 | v2-3 | Upgrade trees: character / weapons / bus from 3 materials + combos | planned | solo | 12, 13 | ticket after wave 1 |
 | v2-4 | UI: route map, bus hub, map HUD (fuel, extract arrow), end-of-map summary | planned | solo/team | 12, 13 | |
 | v2-5 | Reskin to zombies + English copy + ZOMBUS branding + cold open/radio lore | planned | solo | 12 | can run beside v2-3 |
