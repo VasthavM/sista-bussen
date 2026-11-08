@@ -9,7 +9,8 @@ import { expect, test, type Page } from '@playwright/test';
 
 import type { GameDebugApi } from '../../src/debug';
 import { upgradeCost, SHOP_UPGRADES } from '../../src/meta/shop';
-import { AD_PLACEMENTS } from '../../src/monetize/catalog';
+import { SAVE_KEY, SAVE_VERSION } from '../../src/meta/save';
+import { AD_PLACEMENTS, REWARDED_ONBOARDING_FREE_MINUTES } from '../../src/monetize/catalog';
 
 declare global {
   interface Window {
@@ -77,6 +78,15 @@ test('revive, fare doubling and permanent upgrades all move real state', async (
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
 
+  // Start past the onboarding ad gate so the offers under test are rendered.
+  await page.addInitScript(
+    ({ key, version, seconds }) => {
+      if (!localStorage.getItem(key)) {
+        localStorage.setItem(key, JSON.stringify({ version, nightUnlocked: 1, playtimeSeconds: seconds }));
+      }
+    },
+    { key: SAVE_KEY, version: SAVE_VERSION, seconds: REWARDED_ONBOARDING_FREE_MINUTES * 60 },
+  );
   await page.goto('/');
   await expect(page.locator('[data-screen="menu"]')).toBeVisible();
 

@@ -14,6 +14,7 @@ export interface LevelUpDeps {
   audio: AudioEngine;
   state: SimState;
   choices: UpgradeChoice[];
+  adsOfferable: boolean;
   adRerollsLeft: number;
   adRerollCap: number;
   onPick: (id: string) => void;
@@ -66,6 +67,8 @@ export function openLevelUp(deps: LevelUpDeps): OverlayHandle {
   });
 
   root.appendChild(fan);
+
+  if (!deps.adsOfferable) return deps.host.push(root, { label: 'Välj uppgradering' });
 
   const footer = el('div', 'levelup__footer');
   const reroll = button(deps.adRerollsLeft > 0 ? 'NYA KORT' : 'INGA OMSLAG KVAR', {

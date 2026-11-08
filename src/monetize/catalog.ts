@@ -51,6 +51,9 @@ export const AD_PLACEMENTS: Record<AdPlacement, AdPlacementDef> = {
   },
 };
 
+/** Lifetime playtime before any rewarded-ad offer is shown. The only definition; read it via `adsOfferable`. */
+export const REWARDED_ONBOARDING_FREE_MINUTES = 12;
+
 /** Mock ad length. Kept here so the overlay and the provider agree. */
 export const AD_COUNTDOWN_MS = 1200;
 

@@ -3,7 +3,7 @@ import type { WeaponId } from '../sim/types';
 import { generateContracts, type Contract } from './contracts';
 
 export const SAVE_KEY = 'sista-bussen.save.v1';
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 export interface DailyState {
   lastClaimDay: string | null;
@@ -19,6 +19,8 @@ export interface Profile {
   nightUnlocked: number;
   bestNight: number;
   totalRuns: number;
+  /** Lifetime seconds of active, unpaused run time. Gates rewarded-ad offers. */
+  playtimeSeconds: number;
   wins: number;
   runsSinceInterstitial: number;
   lastInterstitialAt: number | null;
@@ -44,6 +46,7 @@ export function createFreshProfile(now = Date.now()): Profile {
     nightUnlocked: 1,
     bestNight: 0,
     totalRuns: 0,
+    playtimeSeconds: 0,
     wins: 0,
     runsSinceInterstitial: 0,
     lastInterstitialAt: null,
@@ -138,6 +141,8 @@ export function normalizeSave(raw: unknown, now = Date.now()): Profile {
       ? Math.max(0, asInt(data.best, 0, 0, 999))
       : asInt(data.bestNight, 0, 0, 999),
     totalRuns: asInt(data.totalRuns, 0, 0, 9_999_999),
+    // v1 -> v2: the field is new, so old saves land on 0 here.
+    playtimeSeconds: asNumber(data.playtimeSeconds, 0, 0, 1e9),
     wins: asInt(data.wins, 0, 0, 9_999_999),
     runsSinceInterstitial: asInt(data.runsSinceInterstitial, 0, 0, 999),
     lastInterstitialAt:

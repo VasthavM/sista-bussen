@@ -2,10 +2,16 @@ import {
   AD_COUNTDOWN_MS,
   IAP_CATALOG,
   INTERSTITIAL_RULES,
+  REWARDED_ONBOARDING_FREE_MINUTES,
   type AdPlacement,
   type IapProduct,
   type IapSku,
 } from './catalog';
+
+/** True once the player is past the onboarding window; before it no rewarded offer is rendered. */
+export function adsOfferable(profile: { playtimeSeconds: number }): boolean {
+  return profile.playtimeSeconds >= REWARDED_ONBOARDING_FREE_MINUTES * 60;
+}
 
 export interface AdOutcome {
   completed: boolean;

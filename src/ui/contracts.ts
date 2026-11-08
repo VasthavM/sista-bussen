@@ -10,6 +10,7 @@ import {
 } from '../meta/contracts';
 import { dayKey, extraPullsLeft } from '../meta/daily';
 import type { Profile } from '../meta/save';
+import { adsOfferable } from '../monetize/ads';
 import { AD_PLACEMENTS } from '../monetize/catalog';
 import { bar, button, el, fmt, toast } from './kit';
 import type { AdGate } from './adOverlay';
@@ -110,14 +111,17 @@ export function openContracts(deps: ContractsDeps): OverlayHandle {
               render();
             });
           },
+          skipOffered: adsOfferable(deps.profile),
           skipAvailable: !contractSkipUsed(day),
         }),
       );
     }
 
-    const pulls = el('div', 'contracts__pulls');
-    pulls.textContent = `Daglådan: ${extraPullsLeft(deps.profile)} extra drag kvar idag.`;
-    body.appendChild(pulls);
+    if (adsOfferable(deps.profile)) {
+      const pulls = el('div', 'contracts__pulls');
+      pulls.textContent = `Daglådan: ${extraPullsLeft(deps.profile)} extra drag kvar idag.`;
+      body.appendChild(pulls);
+    }
   }
 
   render();
@@ -126,7 +130,7 @@ export function openContracts(deps: ContractsDeps): OverlayHandle {
 
 function renderContract(
   contract: Contract,
-  handlers: { onClaim: () => void; onSkip: () => void; skipAvailable: boolean },
+  handlers: { onClaim: () => void; onSkip: () => void; skipOffered: boolean; skipAvailable: boolean },
 ): HTMLElement {
   const complete = isContractComplete(contract);
   const wrap = el('div', `contract${contract.claimed ? ' contract--claimed' : ''}`);
@@ -151,7 +155,7 @@ function renderContract(
     actions.appendChild(button('UTTAGEN', { variant: 'ghost', disabled: true }));
   } else if (complete) {
     actions.appendChild(button('HÄMTA BELÖNING', { variant: 'primary', onClick: handlers.onClaim }));
-  } else {
+  } else if (handlers.skipOffered) {
     const skip = button('KLARA MED ANNONS', {
       variant: 'ghost',
       sub: handlers.skipAvailable

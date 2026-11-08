@@ -10,7 +10,7 @@ import type { Renderer, ViewState } from './render';
 import { applyRunOutcome, computePayout, vipActive, type Payout } from './meta/economy';
 import type { Profile } from './meta/save';
 import { modsFromProfile } from './meta/shop';
-import { shouldShowInterstitial } from './monetize/ads';
+import { adsOfferable, shouldShowInterstitial } from './monetize/ads';
 import { AD_PLACEMENTS } from './monetize/catalog';
 import { CHARACTERS, ENEMIES, WEAPONS } from './sim/content';
 import { RUN_DURATION } from './sim/curve';
@@ -318,6 +318,7 @@ export class Game {
     this.input.setEnabled(!blocked);
 
     if (!blocked) {
+      this.deps.profile.playtimeSeconds += dt;
       this.advance(dt);
       this.checkTransitions();
     } else {
@@ -492,6 +493,7 @@ export class Game {
       audio: this.deps.audio,
       state,
       choices,
+      adsOfferable: adsOfferable(this.deps.profile),
       adRerollsLeft: Math.max(0, AD_PLACEMENTS.reroll.cap - this.rerollsUsed),
       adRerollCap: AD_PLACEMENTS.reroll.cap,
       onPick: (id) => this.pickChoice(id, choices),
@@ -574,6 +576,7 @@ export class Game {
       revivesLeft: Math.max(0, AD_PLACEMENTS.revive.cap - state.revivesUsed),
       revivesUsed: state.revivesUsed,
       nextNightUnlocked: won,
+      adsOfferable: adsOfferable(profile),
     };
   }
 
@@ -586,7 +589,8 @@ export class Game {
     }
     this.phase = 'summary';
     this.input.reset();
-    if (!won && this.reviveOfferedAt !== state.revivesUsed) {
+    this.deps.persist(); // run end: bank playtime even if the app is closed on this screen
+    if (adsOfferable(this.deps.profile) && !won && this.reviveOfferedAt !== state.revivesUsed) {
       this.reviveOfferedAt = state.revivesUsed;
       track('revive_offered', {
         night: state.config.night,
@@ -766,6 +770,7 @@ export class Game {
 
   private onVisibility = (): void => {
     if (typeof document === 'undefined' || !document.hidden) return;
+    this.deps.persist();
     if (this.state && this.phase === 'run' && !this.deps.overlay.open) this.openPauseSheet();
   };
 
