@@ -16,7 +16,7 @@ describe('playtime in the save', () => {
     const { profile, recovered } = parseSave(v1, NOW);
     expect(recovered).toBe(false);
     expect(profile.playtimeSeconds).toBe(0);
-    expect(profile.tickets).toBe(321);
+    expect(profile.materials.scrap).toBe(321);
     expect(profile.nightUnlocked).toBe(3);
     expect(profile.version).toBe(SAVE_VERSION);
   });

@@ -7,9 +7,9 @@ const NOW = 1_800_000_000_000;
 /** A real save written by the v2 code (SAVE_VERSION 2). */
 const V2_TEXT = JSON.stringify(v2Fixture);
 
-describe('save v3', () => {
-  it('is version 3', () => {
-    expect(SAVE_VERSION).toBe(3);
+describe('save v3 fields (route, materials) on the v4 profile', () => {
+  it('is at least version 3', () => {
+    expect(SAVE_VERSION).toBeGreaterThanOrEqual(3);
   });
 
   it('gives a fresh profile empty materials and a start-of-route state', () => {
@@ -26,21 +26,22 @@ describe('save v3', () => {
     expect(v2.version).toBe(2);
     const { profile, recovered } = parseSave(V2_TEXT, NOW);
     expect(recovered).toBe(false);
-    expect(profile.version).toBe(3);
-    expect(profile.materials).toEqual({ scrap: 842, parts: 0, supplies: 0 });
+    expect(profile.version).toBe(SAVE_VERSION);
+    // 842 Biljetter plus the 900 refund for the dropped Startnyckel level (v4).
+    expect(profile.materials).toEqual({ scrap: 842 + 900, parts: 0, supplies: 0 });
     expect(profile.route.bestDepth).toBe(4);
     expect(profile.route).toMatchObject({ depth: 1, checkpoint: 0, path: [] });
     expect(profile.route.segmentSeed).toBe(deriveSegmentSeed(profile.routeSeed, 0));
   });
 
-  it('keeps every v2 field the current game reads, shop upgrade levels included', () => {
+  it('keeps every v2 field the current game reads; shop levels move to their v4 nodes', () => {
     const v2 = JSON.parse(V2_TEXT);
     const { profile } = parseSave(V2_TEXT, NOW);
-    expect(profile.tickets).toBe(v2.tickets);
+    expect(profile.materials.scrap).toBeGreaterThanOrEqual(v2.tickets);
     expect(profile.nightUnlocked).toBe(v2.nightUnlocked);
     expect(profile.bestNight).toBe(v2.bestNight);
-    expect(profile.upgrades).toEqual(v2.upgrades);
-    expect(profile.unlockedWeapons).toEqual(v2.unlockedWeapons);
+    expect(profile.upgrades).toEqual({ w_damage: 3, c_hp: 2, c_speed: 1 });
+    expect(profile.unlockedWeapons).toEqual(expect.arrayContaining(v2.unlockedWeapons));
     expect(profile.playtimeSeconds).toBe(v2.playtimeSeconds);
     expect(profile.daily).toEqual(v2.daily);
     expect(profile.createdAt).toBe(v2.createdAt);
@@ -61,8 +62,8 @@ describe('save v3', () => {
     expect(p.route.bestDepth).toBe(2);
   });
 
-  it('does not run the migration again on a v3 save', () => {
-    const p = normalizeSave({ version: 3, tickets: 500, nightUnlocked: 6, bestNight: 5, materials: { scrap: 3 } }, NOW);
+  it('does not run the v2 -> v3 migration again on a v4 save', () => {
+    const p = normalizeSave({ version: 4, tickets: 500, nightUnlocked: 6, bestNight: 5, materials: { scrap: 3 } }, NOW);
     expect(p.materials).toEqual({ scrap: 3, parts: 0, supplies: 0 });
     expect(p.route.bestDepth).toBe(0);
   });
@@ -90,7 +91,7 @@ describe('save v3', () => {
       [],
     ];
     for (const route of bad) {
-      const p = normalizeSave({ version: 3, routeSeed: 77, route, materials: { scrap: -4, parts: 'x', supplies: 1e15 } }, NOW);
+      const p = normalizeSave({ version: SAVE_VERSION, routeSeed: 77, route, materials: { scrap: -4, parts: 'x', supplies: 1e15 } }, NOW);
       const r = p.route;
       expect(r.depth).toBeGreaterThanOrEqual(1);
       expect(r.checkpoint % SEGMENT_LENGTH).toBe(0);
@@ -106,11 +107,11 @@ describe('save v3', () => {
     }
   });
 
-  it('falls back to a fresh v3 profile on corrupt input as before', () => {
+  it('falls back to a fresh profile on corrupt input as before', () => {
     const { profile, recovered, reason } = parseSave('{"tickets": 5, nope', NOW);
     expect(recovered).toBe(true);
     expect(reason).toBe('invalid_json');
-    expect(profile.version).toBe(3);
+    expect(profile.version).toBe(SAVE_VERSION);
     expect(profile.materials).toEqual({ scrap: 0, parts: 0, supplies: 0 });
     expect(profile.route.depth).toBe(1);
   });

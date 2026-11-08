@@ -167,7 +167,7 @@ export class Game {
       character,
       weapon,
       seed,
-      tickets: profile.tickets,
+      tickets: profile.materials.scrap,
     });
   }
 

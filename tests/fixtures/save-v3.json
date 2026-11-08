@@ -1,0 +1,71 @@
+{
+  "version": 3,
+  "createdAt": 1790000000000,
+  "tickets": 1200,
+  "nightUnlocked": 5,
+  "bestNight": 4,
+  "totalRuns": 31,
+  "playtimeSeconds": 5400.5,
+  "wins": 2,
+  "runsSinceInterstitial": 0,
+  "lastInterstitialAt": null,
+  "unlockedWeapons": [
+    "nyckel",
+    "korv",
+    "spray",
+    "ficklampa",
+    "vagn"
+  ],
+  "weaponTokens": 2,
+  "upgrades": {
+    "kraft": 6,
+    "liv": 4,
+    "fart": 2,
+    "plock": 3,
+    "skinn": 1,
+    "tur": 2,
+    "vaxling": 3,
+    "startnyckel": 2
+  },
+  "ownedSkus": [],
+  "vipUntil": 0,
+  "removeAds": false,
+  "settings": {
+    "muted": false,
+    "haptics": true
+  },
+  "daily": {
+    "lastClaimDay": "2026-11-07",
+    "streak": 3,
+    "adPulls": 1,
+    "adPullDay": "2026-11-07"
+  },
+  "contracts": {
+    "day": "",
+    "items": []
+  },
+  "colours": [
+    "standard"
+  ],
+  "activeColour": "standard",
+  "lastRun": {
+    "night": 4,
+    "time": 180.25,
+    "kills": 212
+  },
+  "materials": {
+    "scrap": 842,
+    "parts": 6,
+    "supplies": 3
+  },
+  "routeSeed": 123456789,
+  "route": {
+    "depth": 12,
+    "checkpoint": 10,
+    "segmentSeed": 0,
+    "path": [
+      1
+    ],
+    "bestDepth": 14
+  }
+}

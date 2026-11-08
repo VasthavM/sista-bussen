@@ -9,7 +9,7 @@ import {
   type Contract,
 } from '../meta/contracts';
 import { dayKey, extraPullsLeft } from '../meta/daily';
-import type { Profile } from '../meta/save';
+import { addScrap, type Profile } from '../meta/save';
 import { adsOfferable } from '../monetize/ads';
 import { AD_PLACEMENTS } from '../monetize/catalog';
 import { bar, button, el, fmt, toast } from './kit';
@@ -87,7 +87,7 @@ export function openContracts(deps: ContractsDeps): OverlayHandle {
             const result = claimContractReward(deps.profile.contracts.items, contract.id);
             if (result.reward <= 0) return;
             deps.profile.contracts.items = result.contracts;
-            deps.profile.tickets = Math.min(99_999_999, deps.profile.tickets + result.reward);
+            addScrap(deps.profile, result.reward);
             track('contract_claim', { id: contract.id, reward: result.reward, byAd: false });
             deps.audio.play('ui_buy');
             deps.persist();

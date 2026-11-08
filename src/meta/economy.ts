@@ -1,6 +1,6 @@
 import type { RunResult } from '../sim/types';
 import { updateContracts } from './contracts';
-import type { Profile } from './save';
+import { addScrap, type Profile } from './save';
 
 export interface PayoutInput {
   change: number;
@@ -45,7 +45,7 @@ export function computePayout(input: PayoutInput): Payout {
 
 /** Add a finished run to the profile: tickets, night unlock, counters, contracts. */
 export function applyRunOutcome(profile: Profile, result: RunResult, payout: Payout): void {
-  profile.tickets = Math.max(0, Math.min(99_999_999, profile.tickets + payout.total));
+  addScrap(profile, payout.total);
   profile.totalRuns += 1;
   profile.runsSinceInterstitial += 1;
   profile.lastRun = {
@@ -78,7 +78,7 @@ export function grantIap(
   },
   now = Date.now(),
 ): void {
-  profile.tickets = Math.min(99_999_999, profile.tickets + product.tickets);
+  addScrap(profile, product.tickets);
   profile.weaponTokens += product.weaponTokens;
   if (product.removesAds) profile.removeAds = true;
   if (product.vipHours > 0) {
