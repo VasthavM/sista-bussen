@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { MAX_ENEMIES, spawnRateAt } from '../src/sim/curve';
 import { directorStep, spawnAtRing, spawnEnemy } from '../src/sim/spawn';
+import type { MapConfig } from '../src/sim/map';
 import { createRun } from '../src/sim/state';
 import { stepRun } from '../src/sim/step';
-import { EMPTY_MODS, type RunConfig, type SimState } from '../src/sim/types';
+import type { SimState } from '../src/sim/types';
+import { runConfig } from './helpers';
 
 /**
  * The shipped portrait camera shows 240 world units sideways and 427 down from
@@ -13,15 +15,8 @@ import { EMPTY_MODS, type RunConfig, type SimState } from '../src/sim/types';
 const FRAME_HALF_W = 240;
 const FRAME_HALF_H = 427;
 
-function makeState(seed = 3, night = 1): SimState {
-  const config: RunConfig = {
-    seed,
-    night,
-    character: 'nattvandraren',
-    weapon: 'nyckel',
-    mods: EMPTY_MODS,
-  };
-  return createRun(config);
+function makeState(seed = 3, depth = 1, over: Partial<MapConfig> = {}): SimState {
+  return createRun(runConfig(seed, depth, over));
 }
 
 function advance(state: SimState, seconds: number): void {
@@ -65,7 +60,7 @@ describe('spawn director', () => {
     expect(onScreen.length).toBeGreaterThan(0);
   });
 
-  it('produces a harder night at the same timestamp', () => {
+  it('produces a harder map at the same timestamp', () => {
     const night1 = makeState(11, 1);
     const night3 = makeState(11, 3);
     advance(night1, 120);
@@ -95,8 +90,23 @@ describe('spawn director', () => {
     );
   });
 
-  it('spawns Nattvakten at 02:30 and Busschauffören at 02:45', () => {
+  it('density multiplier scales the spawn rate', () => {
+    expect(spawnRateAt(120, 1, 2)).toBeCloseTo(spawnRateAt(120, 1) * 2, 6);
+    const normal = makeState(11, 1);
+    const horde = makeState(11, 1, { densityMultiplier: 2 });
+    advance(normal, 120);
+    advance(horde, 120);
+    expect(horde.spawn.totalSpawned).toBeGreaterThan(normal.spawn.totalSpawned * 1.5);
+  });
+
+  it('spawns no fixed-time bosses on a street stop, however long the map runs', () => {
     const state = makeState(1, 1);
+    advance(state, 300);
+    expect(state.enemies.some((e) => e.type === 'nattvakt' || e.type === 'chauffor')).toBe(false);
+  });
+
+  it('spawns Nattvakten at 02:30 and Busschauffören at 02:45 on a boss stop', () => {
+    const state = makeState(1, 1, { stop: 'boss' });
     advance(state, 209);
     expect(state.enemies.some((e) => e.type === 'nattvakt')).toBe(false);
     advance(state, 2);

@@ -329,6 +329,7 @@ const debugApi: GameDebugApi = {
   grantXp: (n) => game.grantXp(n),
   forceSpawn: (type) => game.forceSpawn(type),
   endRun: () => game.endRun(),
+  completeObjective: () => game.completeObjective(),
   setHp: (n) => game.setHp(n),
   onScreenEnemies: () => game.onScreenEnemies(),
   closestEnemy: () => game.closestEnemy(),

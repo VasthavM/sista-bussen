@@ -15,6 +15,8 @@ export interface GameDebugApi {
   forceSpawn(type: Parameters<Game['forceSpawn']>[0]): void;
   /** End the current run immediately; the summary opens on the next frame. */
   endRun(): void;
+  /** Fill the fuel gauge and put the player on the bus; the next sim step extracts through the normal path. */
+  completeObjective(): void;
   /** Set current HP without touching max HP. */
   setHp(n: number): void;
   /** Enemies inside the camera frame right now. */

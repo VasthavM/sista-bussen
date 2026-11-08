@@ -462,8 +462,8 @@ export function drawOrbs(d: Draw): void {
     if (!o.active) continue;
     if (!visible(d, o.x, o.y, 40)) continue;
     const magnet = o.magnet;
-    const colour = o.kind === 'change' ? PAL.amberWarm : PAL.green;
-    const size = o.kind === 'change' ? 4.6 : 3.4 + Math.min(2, o.value * 0.01);
+    const colour = o.kind === 'change' ? PAL.amberWarm : o.kind === 'fuel' ? PAL.amber : PAL.green;
+    const size = o.kind === 'change' || o.kind === 'fuel' ? 4.6 : 3.4 + Math.min(2, o.value * 0.01);
     const pulse = 0.7 + 0.3 * Math.sin(d.t * 8 + o.x * 0.3);
     drawGlow(ctx, glowSprite(colour), o.x, o.y, size * (4 + magnet * 3), 0.35 * pulse);
     ctx.globalAlpha = 0.95;

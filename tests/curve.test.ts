@@ -3,7 +3,7 @@ import {
   RUN_DURATION,
   XP_CURVE_BASE,
   clockLabel,
-  nightDifficulty,
+  depthDifficulty,
   spawnIntensityAt,
   spawnRateAt,
   totalXpForLevel,
@@ -34,16 +34,16 @@ describe('XP / level curve', () => {
   });
 });
 
-describe('night difficulty', () => {
+describe('depth difficulty', () => {
   it('scales exactly like the spec formula', () => {
-    expect(nightDifficulty(1)).toBeCloseTo(1, 6);
-    expect(nightDifficulty(2)).toBeCloseTo(1.18, 6);
-    expect(nightDifficulty(10)).toBeCloseTo(2.62, 6);
+    expect(depthDifficulty(1)).toBeCloseTo(1, 6);
+    expect(depthDifficulty(2)).toBeCloseTo(1.18, 6);
+    expect(depthDifficulty(10)).toBeCloseTo(2.62, 6);
   });
 
-  it('never goes below 1 on invalid nights', () => {
-    expect(nightDifficulty(0)).toBe(1);
-    expect(nightDifficulty(-5)).toBe(1);
+  it('never goes below 1 on invalid depths', () => {
+    expect(depthDifficulty(0)).toBe(1);
+    expect(depthDifficulty(-5)).toBe(1);
   });
 });
 
@@ -58,8 +58,14 @@ describe('spawn director intensity', () => {
     }
   });
 
-  it('caps at the run duration', () => {
-    expect(spawnIntensityAt(400)).toBe(spawnIntensityAt(RUN_DURATION));
+  it('keeps ramping past the old 03:00 end, with no cap', () => {
+    expect(spawnIntensityAt(300)).toBeGreaterThan(spawnIntensityAt(RUN_DURATION));
+    expect(spawnIntensityAt(600)).toBeGreaterThan(spawnIntensityAt(300));
+  });
+
+  it('is unchanged up to the old end, so depth 1 plays like night 1', () => {
+    expect(spawnIntensityAt(210)).toBeCloseTo(2.52, 9);
+    expect(spawnIntensityAt(RUN_DURATION)).toBeCloseTo(2.565, 9);
   });
 
   it('multiplies the whole curve by the night difficulty', () => {

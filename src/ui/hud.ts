@@ -2,13 +2,13 @@
  * The one and only in-run HUD. DOM, because it has to stay crisp, respect the
  * safe-area insets, own the pause button and never clip at the letterbox.
  *
- * Layout intent (DESIGN.md §5): the clock and the night bar are the loudest
- * things on screen — they are the goal of the run. Under it the survivable
+ * Layout intent (DESIGN.md §5): the clock and the fuel gauge are the loudest
+ * things on screen — the gauge is the goal of the run (placeholder until the v2 HUD ticket). Under it the survivable
  * numbers (HP, XP, level, kills, Växel) and the weapon rack, all labelled in
  * Swedish so no number is ever ambiguous, all legible at 30% brightness.
  */
 import type { AudioEngine } from '../audio';
-import { clockLabel, BOSS_CHAUFFOR_AT, BOSS_NATTVAKT_AT, RUN_DURATION } from '../sim/curve';
+import { clockLabel } from '../sim/curve';
 import { WEAPONS } from '../sim/content';
 import type { SimState } from '../sim/types';
 import { bar, button, el, fmt } from './kit';
@@ -25,23 +25,11 @@ export interface HudDeps {
   onPause: () => void;
 }
 
-interface BossMark {
-  at: number;
-  label: string;
-  className: string;
-}
-
-/** Both boss slots on the night bar, positioned from the sim curve. */
-const BOSS_MARKS: BossMark[] = [
-  { at: BOSS_NATTVAKT_AT, label: 'NATTVAKT', className: 'hud__tick--nattvakt' },
-  { at: BOSS_CHAUFFOR_AT, label: 'CHAUFFÖR', className: 'hud__tick--chauffor' },
-];
-
 export function mountHud(deps: HudDeps): Hud {
   const root = el('div', 'hud');
   root.setAttribute('aria-live', 'off');
 
-  // ---- top: clock, night, the bar that is the win condition ----
+  // ---- top: clock, depth, the fuel gauge that is the win condition ----
   const top = el('div', 'hud__top');
   const clockPanel = el('div', 'hud__clock');
   clockPanel.dataset.hud = 'clock';
@@ -57,21 +45,12 @@ export function mountHud(deps: HudDeps): Hud {
   const progress = bar('bar--night', 0);
   progress.classList.add('hud__nightbar-track');
   nightBar.appendChild(progress);
-  for (const mark of BOSS_MARKS) {
-    const tick = el('span', `hud__tick ${mark.className}`);
-    tick.style.left = `${(mark.at / RUN_DURATION) * 100}%`;
-    nightBar.appendChild(tick);
-  }
   clockPanel.appendChild(nightBar);
 
   const marks = el('div', 'hud__marks');
-  for (const mark of BOSS_MARKS) {
-    const item = el('span', `hud__mark ${mark.className.replace('tick', 'mark')}`);
-    item.appendChild(el('span', 'hud__mark-time', clockLabel(mark.at)));
-    item.appendChild(el('span', 'hud__mark-name', mark.label));
-    marks.appendChild(item);
-  }
-  marks.appendChild(el('span', 'hud__bus', `BUSS ${clockLabel(RUN_DURATION)}`));
+  const fuelText = el('span', 'hud__bus', 'BRÄNSLE 0 / 0');
+  fuelText.dataset.hud = 'fuel';
+  marks.appendChild(fuelText);
   clockPanel.appendChild(marks);
   top.appendChild(clockPanel);
 
@@ -140,6 +119,7 @@ export function mountHud(deps: HudDeps): Hud {
     kills: '',
     change: '',
     progress: -1,
+    fuel: '',
     weapons: '',
   };
   let bannerTimer: number | null = null;
@@ -166,17 +146,25 @@ export function mountHud(deps: HudDeps): Hud {
         clock.textContent = stamp;
         cache.clock = stamp;
       }
-      const nightText = `NATT ${state.config.night}`;
+      const nightText = `NATT ${state.config.map.depth}`;
       if (nightText !== cache.night) {
         night.textContent = nightText;
         cache.night = nightText;
       }
 
-      const progressFrac = Math.max(0, Math.min(1, state.time / RUN_DURATION));
+      const quota = state.config.map.fuelQuota;
+      const progressFrac = Math.max(0, Math.min(1, state.fuel / Math.max(1, quota)));
       if (Math.abs(progressFrac - cache.progress) > 0.002) {
         setFill(progress, progressFrac);
-        clockPanel.classList.toggle('hud__clock--late', progressFrac >= 0.75);
         cache.progress = progressFrac;
+      }
+      const fuelLine = state.quotaMet
+        ? 'TA BUSSEN'
+        : `BRÄNSLE ${Math.min(Math.floor(state.fuel), quota)} / ${quota}`;
+      if (fuelLine !== cache.fuel) {
+        fuelText.textContent = fuelLine;
+        clockPanel.classList.toggle('hud__clock--late', state.quotaMet);
+        cache.fuel = fuelLine;
       }
 
       const hpNow = Math.max(0, Math.ceil(state.player.hp));

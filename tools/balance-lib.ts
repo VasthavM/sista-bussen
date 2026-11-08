@@ -1,8 +1,9 @@
 /**
- * Balance harness core. Headless bot runs against the frozen sim in src/sim (import only).
+ * Balance harness core. Headless bot runs against the sim in src/sim (import only).
  * Loaded by tools/balance.mjs (Node type stripping + tools/ts-hooks.mjs) and by vitest.
  * Type-only imports MUST use `import type`: Node strips them, it cannot elide plain imports.
  */
+import type { MapConfig } from '../src/sim/map';
 import { EMPTY_MODS } from '../src/sim/types';
 import type {
   CharacterId,
@@ -14,16 +15,21 @@ import type {
   WeaponInstance,
 } from '../src/sim/types';
 import { WEAPONS, WEAPON_ORDER } from '../src/sim/content';
-import { RUN_DURATION } from '../src/sim/curve';
 import { makeRng, nextFloat } from '../src/sim/rng';
-import { WORLD, createRun } from '../src/sim/state';
+import { defaultMapConfig, fuelQuotaFor } from '../src/sim/objective';
+import { CANISTER_FUEL, WORLD, createRun } from '../src/sim/state';
 import { stepRun } from '../src/sim/step';
 import { applyChoice, rollChoices } from '../src/sim/upgrades';
 
 const DT = 1 / 60;
+/** Safety net so a bot that never reaches the bus cannot loop forever. Counts as not extracted. */
+const MAX_MAP_SECONDS = 900;
 
 export interface BalanceConfig {
-  night: number;
+  /** Map depth (difficulty). */
+  depth: number;
+  /** Fuel quota override. Default: fuelQuotaFor(depth). */
+  quota?: number;
   character: CharacterId;
   weapon: WeaponId;
   /** 'random' | 'greedy' | 'rush' (rush the starting weapon) | 'rush:<weaponId>' */
@@ -35,9 +41,15 @@ export interface BalanceConfig {
 
 export interface RunSummary {
   seed: number;
-  won: boolean;
-  /** Seconds survived. 240 for a win. */
+  extracted: boolean;
+  /** Seconds of sim time when the map ended (extraction or death). */
   endTime: number;
+  /** Seconds when the quota was met, or null if it never was. */
+  quotaTime: number | null;
+  /** Kills when the quota was met, and the share of the quota that came from kill drops (not canisters). */
+  killsAtQuota: number;
+  killFuelShare: number;
+  fuel: number;
   finalLevel: number;
   kills: number;
   peakEnemies: number;
@@ -51,10 +63,23 @@ export interface RunSummary {
 export interface ConfigReport {
   config: BalanceConfig & { policy: string };
   runs: number;
-  winRate: number;
+  extractRate: number;
+  /** Share of runs that met the fuel quota (extracted or died on the way to the bus). */
+  quotaRate: number;
   endTime: { median: number; p10: number; p90: number };
-  /** Level at 03:00, only for runs that reached it. */
-  levelAt0300: { median: number | null; runsReached: number };
+  /** Median seconds to meet the quota, over runs that did. */
+  timeToQuota: { median: number | null; runs: number };
+  /** Median share of the fuel at quota time that came from zombie drops, over runs that met the quota. */
+  killFuelShare: number | null;
+  /**
+   * Pearson correlation between kills per minute (until the quota) and time to quota, over runs that met it.
+   * Negative means faster killers fill the gauge sooner. Null with fewer than 3 runs.
+   */
+  killRateVsQuotaTime: number | null;
+  /** Median seconds to extract, over runs that did. */
+  timeToExtract: { median: number | null; runs: number };
+  /** Level when the map ended, only for runs that extracted. */
+  levelAtExtract: { median: number | null; runsReached: number };
   finalLevelMedian: number;
   peakEnemies: { median: number; max: number };
   weapons: Record<WeaponId, { ownedRate: number; evolutionRate: number; damageShare: number }>;
@@ -63,24 +88,21 @@ export interface ConfigReport {
 // ---------------------------------------------------------------- bot movement
 
 /**
- * Kiting bot, ported from tests/run.test.ts dodgeInput: orbits the arena centre, is pushed away
- * by enemies within 150px and sidesteps enemy shots within 110px. "Good but not perfect player".
+ * Kiting vector, ported from tests/run.test.ts dodgeInput: orbits the arena centre, is pushed away
+ * by enemies within 150px and sidesteps enemy shots within 110px. `orbit` scales the orbit terms
+ * (tangent + pull back to radius 330); the avoidance terms always count in full.
  */
-export function kiteInput(state: SimState): { x: number; y: number } {
+function kiteVector(state: SimState, orbit: number): { x: number; y: number } {
   const t = state.time;
   const cx = WORLD.w / 2;
   const cy = WORLD.h / 2;
   const dx = state.player.x - cx;
   const dy = state.player.y - cy;
   const r = Math.hypot(dx, dy) || 1;
-  if (r < 24) return { x: 1, y: 0 };
 
   const dir = Math.floor(t / 21) % 2 === 0 ? 1 : -1;
-  let tx = (-dy / r) * dir;
-  let ty = (dx / r) * dir;
-  const radial = (330 - r) / 330;
-  tx += (dx / r) * radial;
-  ty += (dy / r) * radial;
+  let tx = ((-dy / r) * dir + (dx / r) * ((330 - r) / 330)) * orbit;
+  let ty = ((dx / r) * dir + (dy / r) * ((330 - r) / 330)) * orbit;
 
   for (const e of state.enemies) {
     const ex = state.player.x - e.x;
@@ -103,8 +125,53 @@ export function kiteInput(state: SimState): { x: number; y: number } {
       ty += (ey / d) * w;
     }
   }
-  const len = Math.hypot(tx, ty) || 1;
-  return { x: tx / len, y: ty / len };
+  return { x: tx, y: ty };
+}
+
+function unit(v: { x: number; y: number }): { x: number; y: number } {
+  const len = Math.hypot(v.x, v.y) || 1;
+  return { x: v.x / len, y: v.y / len };
+}
+
+/** Pure kiting, the old night-1 bot. Kept for the attribution test and as the no-objective fallback. */
+export function kiteInput(state: SimState): { x: number; y: number } {
+  const r = Math.hypot(state.player.x - WORLD.w / 2, state.player.y - WORLD.h / 2);
+  if (r < 24) return { x: 1, y: 0 };
+  return unit(kiteVector(state, 1));
+}
+
+/** How much of the orbit survives while the bot walks to a goal, and how hard the goal pulls. */
+export const BOT_ORBIT_WHILE_SEEKING = 0.3;
+export const BOT_GOAL_PULL = 1.2;
+
+/** The nearest uncollected canister, or the bus once the quota is met. */
+export function botTarget(state: SimState): { x: number; y: number } | null {
+  if (state.quotaMet) return state.bus;
+  let best: { x: number; y: number } | null = null;
+  let bestD = Number.POSITIVE_INFINITY;
+  for (const c of state.canisters) {
+    if (!c.active) continue;
+    const d = Math.hypot(c.x - state.player.x, c.y - state.player.y);
+    if (d < bestD) {
+      best = c;
+      bestD = d;
+    }
+  }
+  return best;
+}
+
+/**
+ * Objective bot: kites like the old bot, but leans toward the nearest canister until the quota is
+ * met, then toward the bus. Enemy and shot avoidance still apply.
+ */
+export function botInput(state: SimState): { x: number; y: number } {
+  const goal = botTarget(state);
+  if (!goal) return kiteInput(state);
+  const v = kiteVector(state, BOT_ORBIT_WHILE_SEEKING);
+  const gx = goal.x - state.player.x;
+  const gy = goal.y - state.player.y;
+  const gd = Math.hypot(gx, gy) || 1;
+  return unit({ x: v.x + (gx / gd) * BOT_GOAL_PULL, y: v.y + (gy / gd) * BOT_GOAL_PULL });
 }
 
 // ---------------------------------------------------------------- card policies
@@ -250,24 +317,33 @@ function attachAttribution(state: SimState): { damage: Record<string, number> } 
   return { damage };
 }
 
-// ---------------------------------------------------------------- one night
+// ---------------------------------------------------------------- one map
 
-export function simulateNight(cfg: BalanceConfig, seed: number): RunSummary {
+export function simulateMap(cfg: BalanceConfig, seed: number): RunSummary {
+  const map: MapConfig = { ...defaultMapConfig(seed, cfg.depth), ...(cfg.quota === undefined ? {} : { fuelQuota: cfg.quota }) };
   const config: RunConfig = {
-    seed,
-    night: cfg.night,
     character: cfg.character,
     weapon: cfg.weapon,
     mods: { ...EMPTY_MODS, ...cfg.mods },
+    map,
   };
   const state = createRun(config);
   const policy = makePolicy(cfg.policy, cfg.weapon, seed);
   const { damage } = attachAttribution(state);
   let peak = 0;
+  let quotaTime: number | null = null;
+  let killsAtQuota = 0;
+  let killFuelShare = 0;
 
-  while (state.status === 'running') {
-    stepRun(state, DT, kiteInput(state));
+  while (state.status === 'running' && state.time < MAX_MAP_SECONDS) {
+    stepRun(state, DT, botInput(state));
     if (state.enemies.length > peak) peak = state.enemies.length;
+    if (quotaTime === null && state.quotaMet) {
+      quotaTime = state.time;
+      killsAtQuota = state.kills;
+      const fromCanisters = state.canisters.filter((c) => !c.active).length * CANISTER_FUEL;
+      killFuelShare = Math.max(0, 1 - fromCanisters / Math.max(1, state.fuel));
+    }
     while (state.pendingLevelUps > 0) {
       const choices = rollChoices(state, 3);
       if (choices.length === 0) {
@@ -280,8 +356,12 @@ export function simulateNight(cfg: BalanceConfig, seed: number): RunSummary {
 
   return {
     seed,
-    won: state.status === 'won',
-    endTime: state.status === 'won' ? RUN_DURATION : state.time,
+    extracted: state.status === 'extracted',
+    endTime: state.time,
+    quotaTime,
+    killsAtQuota,
+    killFuelShare,
+    fuel: state.fuel,
     finalLevel: state.level,
     kills: state.kills,
     peakEnemies: peak,
@@ -294,7 +374,7 @@ export function simulateNight(cfg: BalanceConfig, seed: number): RunSummary {
 
 export function simulateRange(cfg: BalanceConfig, from: number, count: number): RunSummary[] {
   const out: RunSummary[] = [];
-  for (let i = from; i < from + count; i++) out.push(simulateNight(cfg, (cfg.baseSeed + i) >>> 0));
+  for (let i = from; i < from + count; i++) out.push(simulateMap(cfg, (cfg.baseSeed + i) >>> 0));
   return out;
 }
 
@@ -310,9 +390,28 @@ export function percentile(values: number[], q: number): number {
 const r2 = (v: number) => Math.round(v * 100) / 100;
 const r4 = (v: number) => Math.round(v * 10000) / 10000;
 
+export function pearson(xs: number[], ys: number[]): number | null {
+  const n = xs.length;
+  if (n < 3) return null;
+  const mx = xs.reduce((a, b) => a + b, 0) / n;
+  const my = ys.reduce((a, b) => a + b, 0) / n;
+  let sxy = 0;
+  let sxx = 0;
+  let syy = 0;
+  for (let i = 0; i < n; i++) {
+    sxy += (xs[i] - mx) * (ys[i] - my);
+    sxx += (xs[i] - mx) ** 2;
+    syy += (ys[i] - my) ** 2;
+  }
+  return sxx > 0 && syy > 0 ? r2(sxy / Math.sqrt(sxx * syy)) : null;
+}
+
+const median = (values: number[]): number | null => (values.length ? r2(percentile(values, 0.5)) : null);
+
 export function summarise(cfg: BalanceConfig, runs: RunSummary[]): ConfigReport {
   const n = runs.length;
-  const survivors = runs.filter((r) => r.won);
+  const out = runs.filter((r) => r.extracted);
+  const quota = runs.filter((r) => r.quotaTime !== null);
   const totalDamage = runs.reduce((s, r) => s + Object.values(r.damage).reduce((a, b) => a + b, 0), 0);
   const weapons = {} as ConfigReport['weapons'];
   for (const id of WEAPON_ORDER) {
@@ -325,13 +424,21 @@ export function summarise(cfg: BalanceConfig, runs: RunSummary[]): ConfigReport 
   }
   const ends = runs.map((r) => r.endTime);
   return {
-    config: { ...cfg, policy: resolvePolicy(cfg.policy, cfg.weapon) },
+    config: { ...cfg, quota: cfg.quota ?? fuelQuotaFor(cfg.depth), policy: resolvePolicy(cfg.policy, cfg.weapon) },
     runs: n,
-    winRate: r4(survivors.length / n),
+    extractRate: r4(out.length / n),
+    quotaRate: r4(quota.length / n),
     endTime: { median: r2(percentile(ends, 0.5)), p10: r2(percentile(ends, 0.1)), p90: r2(percentile(ends, 0.9)) },
-    levelAt0300: {
-      median: survivors.length ? percentile(survivors.map((r) => r.finalLevel), 0.5) : null,
-      runsReached: survivors.length,
+    timeToQuota: { median: median(quota.map((r) => r.quotaTime as number)), runs: quota.length },
+    killFuelShare: median(quota.map((r) => r.killFuelShare)),
+    killRateVsQuotaTime: pearson(
+      quota.map((r) => (r.killsAtQuota / (r.quotaTime as number)) * 60),
+      quota.map((r) => r.quotaTime as number),
+    ),
+    timeToExtract: { median: median(out.map((r) => r.endTime)), runs: out.length },
+    levelAtExtract: {
+      median: out.length ? percentile(out.map((r) => r.finalLevel), 0.5) : null,
+      runsReached: out.length,
     },
     finalLevelMedian: percentile(runs.map((r) => r.finalLevel), 0.5),
     peakEnemies: {
@@ -349,18 +456,18 @@ export function runConfigSync(cfg: BalanceConfig): ConfigReport {
 // ---------------------------------------------------------------- markdown
 
 const pct = (v: number) => `${(v * 100).toFixed(v > 0 && v < 0.1 ? 1 : 0)}%`;
-const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+const mmss = (s: number | null) => (s === null ? 'n/a' : `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`);
 
 /** Short table for one config: headline row plus one row per weapon. */
 export function renderConfigTable(r: ConfigReport): string {
   const c = r.config;
-  const lvl = r.levelAt0300.median === null ? 'n/a' : String(r.levelAt0300.median);
+  const lvl = r.levelAtExtract.median === null ? 'n/a' : String(r.levelAtExtract.median);
   const lines = [
-    `### Night ${c.night}, ${c.character}, start ${c.weapon}, policy ${c.policy}, N=${r.runs}, seed ${c.baseSeed}`,
+    `### Depth ${c.depth}, quota ${c.quota}, ${c.character}, start ${c.weapon}, policy ${c.policy}, N=${r.runs}, seed ${c.baseSeed}`,
     '',
-    '| win rate | death time median (p10-p90) | level at 03:00 | peak live enemies (median / max) |',
-    '|---|---|---|---|',
-    `| ${pct(r.winRate)} | ${mmss(r.endTime.median)} (${mmss(r.endTime.p10)}-${mmss(r.endTime.p90)}) | ${lvl} (n=${r.levelAt0300.runsReached}) | ${r.peakEnemies.median} / ${r.peakEnemies.max} |`,
+    '| extraction rate | reached quota | median time to quota | from kills | corr(kills/min, time to quota) | median time to extract | level at extract | peak live enemies (median / max) |',
+    '|---|---|---|---|---|---|---|---|',
+    `| ${pct(r.extractRate)} | ${pct(r.quotaRate)} | ${mmss(r.timeToQuota.median)} (n=${r.timeToQuota.runs}) | ${r.killFuelShare === null ? 'n/a' : pct(r.killFuelShare)} | ${r.killRateVsQuotaTime ?? 'n/a'} | ${mmss(r.timeToExtract.median)} (n=${r.timeToExtract.runs}) | ${lvl} (n=${r.levelAtExtract.runsReached}) | ${r.peakEnemies.median} / ${r.peakEnemies.max} |`,
     '',
     '| weapon | owned | evolved | damage share |',
     '|---|---|---|---|',
@@ -372,25 +479,24 @@ export function renderConfigTable(r: ConfigReport): string {
   return lines.join('\n');
 }
 
-/** Baseline layout: per starting weapon, one headline table over nights and one weapon table over nights. */
+/** Baseline layout: per starting weapon, one headline table over depths and one weapon table over depths. */
 export function renderBaselineTables(reports: ConfigReport[]): string {
   const starts = [...new Set(reports.map((r) => r.config.weapon))];
   const out: string[] = [];
   for (const start of starts) {
-    const rs = reports.filter((r) => r.config.weapon === start).sort((a, b) => a.config.night - b.config.night);
+    const rs = reports.filter((r) => r.config.weapon === start).sort((a, b) => a.config.depth - b.config.depth);
     const first = rs[0].config;
     out.push(`### Start weapon: ${start} (${WEAPONS[start].name})`, '');
-    out.push(`Policy \`${first.policy}\`, ${first.character}, N=${first.n} per night, base seed ${first.baseSeed}.`, '');
-    out.push('| night | win rate | death time median (p10-p90) | level at 03:00 | median final level | peak enemies (median / max) |');
-    out.push('|---|---|---|---|---|---|');
+    out.push(`Policy \`${first.policy}\`, ${first.character}, N=${first.n} per depth, base seed ${first.baseSeed}.`, '');
+    out.push('| depth | quota | extraction rate | reached quota | time to quota (median) | fuel from kills | corr(kills/min, time to quota) | time to extract (median) | end time median (p10-p90) | median final level | peak enemies (median / max) |');
+    out.push('|---|---|---|---|---|---|---|---|---|---|---|');
     for (const r of rs) {
-      const lvl = r.levelAt0300.median === null ? 'n/a' : `${r.levelAt0300.median} (n=${r.levelAt0300.runsReached})`;
       out.push(
-        `| ${r.config.night} | ${pct(r.winRate)} | ${mmss(r.endTime.median)} (${mmss(r.endTime.p10)}-${mmss(r.endTime.p90)}) | ${lvl} | ${r.finalLevelMedian} | ${r.peakEnemies.median} / ${r.peakEnemies.max} |`,
+        `| ${r.config.depth} | ${r.config.quota} | ${pct(r.extractRate)} | ${pct(r.quotaRate)} | ${mmss(r.timeToQuota.median)} | ${r.killFuelShare === null ? 'n/a' : pct(r.killFuelShare)} | ${r.killRateVsQuotaTime ?? 'n/a'} | ${mmss(r.timeToExtract.median)} | ${mmss(r.endTime.median)} (${mmss(r.endTime.p10)}-${mmss(r.endTime.p90)}) | ${r.finalLevelMedian} | ${r.peakEnemies.median} / ${r.peakEnemies.max} |`,
       );
     }
     out.push('', `Evolved % of all runs / damage share, per weapon:`, '');
-    out.push(`| weapon | ${rs.map((r) => `night ${r.config.night}`).join(' | ')} |`);
+    out.push(`| weapon | ${rs.map((r) => `depth ${r.config.depth}`).join(' | ')} |`);
     out.push(`|---|${rs.map(() => '---').join('|')}|`);
     for (const id of WEAPON_ORDER) {
       const mark = id === start ? ' (start)' : '';

@@ -15,6 +15,7 @@ export type Sfx =
   | 'death'
   | 'revive'
   | 'win'
+  | 'horn'
   | 'ui_click'
   | 'ui_buy'
   | 'ad_reward'

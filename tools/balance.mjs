@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 /**
- * Balance harness CLI. Runs N seeded nights per config headlessly, in parallel worker threads.
+ * Balance harness CLI. Runs N seeded maps per config headlessly, in parallel worker threads.
  * Same inputs give the same report regardless of worker count (results are re-ordered by seed).
  *
- *   node tools/balance.mjs --nights 1-5 --weapons all --n 200 --out specs/balance/baseline.json \
+ *   node tools/balance.mjs --depths 1-5 --weapons all --n 200 --out specs/balance/baseline.json \
  *        --md specs/balance/baseline.tables.md
  *
  * Options (all optional):
- *   --nights 1-5 | 1,3      --weapons all | nyckel,korv      --character nattvandraren
- *   --policy rush | greedy | random | rush:<weapon>   --mods damage=0.1,hp=20,startWeaponLevel=2
+ *   --depths 1-5 | 1,3       --weapons all | nyckel,korv      --character nattvandraren
+ *   --quota <fuel> (default: fuelQuotaFor(depth))   --policy rush | greedy | random | rush:<weapon>   --mods damage=0.1,hp=20,startWeaponLevel=2
  *   --n 200   --seed 1000   --workers <cpus-2>   --out report.json   --md tables.md   --layout baseline|configs
  */
 import './balance-boot.mjs';
@@ -50,14 +50,15 @@ function parseMods(spec) {
 }
 
 const args = parseArgs(process.argv.slice(2));
-const nights = parseList(args.nights ?? '1', []).map(Number);
+const depths = parseList(args.depths ?? '1', []).map(Number);
 const weapons = parseList(args.weapons ?? 'all', WEAPON_ORDER);
 const n = Number(args.n ?? 200);
 const baseSeed = Number(args.seed ?? 1000);
 const workers = Math.max(1, Number(args.workers ?? availableParallelism() - 2));
 const configs = weapons.flatMap((weapon) =>
-  nights.map((night) => ({
-    night,
+  depths.map((depth) => ({
+    depth,
+    quota: args.quota === undefined ? undefined : Number(args.quota),
     character: args.character ?? 'nattvandraren',
     weapon,
     policy: args.policy ?? 'rush',
@@ -99,7 +100,7 @@ await new Promise((resolve, reject) => {
 
 const reports = configs.map((cfg, i) => summarise(cfg, results[i].sort((a, b) => a.seed - b.seed)));
 const seconds = (Date.now() - started) / 1000;
-process.stderr.write(`\n${configs.length} configs x ${n} nights on ${workers} workers: ${seconds.toFixed(1)}s\n`);
+process.stderr.write(`\n${configs.length} configs x ${n} maps on ${workers} workers: ${seconds.toFixed(1)}s\n`);
 
 const json = JSON.stringify({ reports }, null, 2) + '\n';
 const md =

@@ -9,17 +9,11 @@ import {
 } from '../src/sim/upgrades';
 import { createRun } from '../src/sim/state';
 import { WEAPONS } from '../src/sim/content';
-import { EMPTY_MODS, type RunConfig, type SimState } from '../src/sim/types';
+import type { SimState } from '../src/sim/types';
+import { runConfig } from './helpers';
 
 function makeState(seed = 7): SimState {
-  const config: RunConfig = {
-    seed,
-    night: 1,
-    character: 'nattvandraren',
-    weapon: 'nyckel',
-    mods: EMPTY_MODS,
-  };
-  return createRun(config);
+  return createRun(runConfig(seed));
 }
 
 describe('upgrade pool legality', () => {

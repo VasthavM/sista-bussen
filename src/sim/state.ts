@@ -1,7 +1,10 @@
 import { CHARACTERS } from './content';
 import { xpForLevel } from './curve';
-import { makeRng } from './rng';
+import type { MapResult } from './map';
+import { makeRng, nextFloat, nextInt, nextRange, type Rng } from './rng';
 import type {
+  Bus,
+  Canister,
   MetaMods,
   RunConfig,
   RunResult,
@@ -14,6 +17,60 @@ import type {
 export const WORLD = { w: 1400, h: 1400 };
 export const PLAYER_RADIUS = 15;
 export const EVENT_POOL = 512;
+
+/** Fuel in one canister. */
+export const CANISTER_FUEL = 5;
+/** Canisters are a bonus: together they carry about this share of the quota. Kills carry the rest. */
+export const CANISTER_SHARE = 0.3;
+const CANISTER_MIN_GAP = 100;
+/** Risky canisters sit this close to the map border... */
+const EDGE_BAND = 150;
+/** ...and at least this far from the bus. */
+const RISKY_BUS_DISTANCE = 350;
+
+/**
+ * Seeded placement of the bus and the canisters. Uses its own RNG stream (derived from the map
+ * seed) so the layout never consumes the combat stream. Same seed and quota give the same layout.
+ * Every other canister is "risky": out on the border, far from the bus, so grabbing it is a choice.
+ */
+export function layoutMap(seed: number, fuelQuota: number): { bus: Bus; canisters: Canister[] } {
+  const rng: Rng = makeRng((seed ^ 0xa5f00d) >>> 0);
+  const cx = WORLD.w / 2;
+  const cy = WORLD.h / 2;
+  const angle = nextFloat(rng) * Math.PI * 2;
+  const reach = nextRange(rng, 520, 600);
+  const bus: Bus = {
+    x: Math.min(WORLD.w - 120, Math.max(120, cx + Math.cos(angle) * reach)),
+    y: Math.min(WORLD.h - 120, Math.max(120, cy + Math.sin(angle) * reach)),
+  };
+  const count = Math.ceil((fuelQuota * CANISTER_SHARE) / CANISTER_FUEL) + nextInt(rng, 2);
+  const canisters: Canister[] = [];
+  for (let i = 0; i < count; i++) {
+    const risky = i % 2 === 1;
+    let x = 0;
+    let y = 0;
+    // shortcut: 60 tries then accept the last candidate, only matters when the map is nearly full.
+    for (let tries = 0; tries < 60; tries++) {
+      x = nextRange(rng, 90, WORLD.w - 90);
+      y = nextRange(rng, 90, WORLD.h - 90);
+      if (risky) {
+        // Pull one axis into the border band.
+        const side = nextInt(rng, 4);
+        if (side === 0) x = nextRange(rng, 60, EDGE_BAND);
+        else if (side === 1) x = nextRange(rng, WORLD.w - EDGE_BAND, WORLD.w - 60);
+        else if (side === 2) y = nextRange(rng, 60, EDGE_BAND);
+        else y = nextRange(rng, WORLD.h - EDGE_BAND, WORLD.h - 60);
+      }
+      const clear =
+        Math.hypot(x - cx, y - cy) > 150 &&
+        Math.hypot(x - bus.x, y - bus.y) > (risky ? RISKY_BUS_DISTANCE : 130) &&
+        canisters.every((c) => Math.hypot(x - c.x, y - c.y) > CANISTER_MIN_GAP);
+      if (clear) break;
+    }
+    canisters.push({ active: true, risky, x, y, fuel: CANISTER_FUEL });
+  }
+  return { bus, canisters };
+}
 
 function createEventPool(): SimEvent[] {
   const pool: SimEvent[] = [];
@@ -51,7 +108,9 @@ export function clearEvents(state: SimState): void {
 }
 
 export function createRun(config: RunConfig): SimState {
-  const rng = makeRng(config.seed >>> 0);
+  const seed = config.map.seed >>> 0;
+  const rng = makeRng(seed);
+  const { bus, canisters } = layoutMap(seed, config.map.fuelQuota);
   const startLevel = Math.max(1, 1 + Math.min(3, Math.floor(config.mods.startWeaponLevel)));
   const weapon: WeaponInstance = {
     id: config.weapon,
@@ -61,6 +120,7 @@ export function createRun(config: RunConfig): SimState {
   };
   const state: SimState = {
     rng,
+    dropRng: makeRng((seed ^ 0x5eed) >>> 0),
     config,
     time: 0,
     status: 'running',
@@ -111,11 +171,16 @@ export function createRun(config: RunConfig): SimState {
     kills: 0,
     killsByType: {},
     change: 0,
+    fuel: 0,
+    quotaMet: false,
+    materials: { scrap: 0, parts: 0, supplies: 0 },
+    canisters,
+    bus,
     damageDealt: 0,
     nextUid: 1,
     shake: 0,
     revivesUsed: 0,
-    runSeed: config.seed >>> 0,
+    runSeed: seed,
   };
   recomputeStats(state, false);
   state.player.hp = state.player.maxHp;
@@ -197,8 +262,8 @@ export function revivePlayer(state: SimState): boolean {
 
 export function computeRunResult(state: SimState): RunResult {
   return {
-    won: state.status === 'won',
-    night: state.config.night,
+    won: state.status === 'extracted',
+    night: state.config.map.depth,
     time: state.time,
     level: state.level,
     kills: state.kills,
@@ -208,5 +273,17 @@ export function computeRunResult(state: SimState): RunResult {
     weapons: state.weapons.map((w) => (w.evolved ? `${w.id}_evo` : w.id)),
     revivesUsed: state.revivesUsed,
     character: state.config.character,
+  };
+}
+
+/** What the route layer consumes once the map is over. Materials are floored to whole units. */
+export function computeMapResult(state: SimState): MapResult {
+  const m = state.materials;
+  return {
+    outcome: state.status === 'extracted' ? 'extracted' : 'died',
+    time: state.time,
+    fuelCollected: Math.floor(state.fuel),
+    materials: { scrap: Math.floor(m.scrap), parts: Math.floor(m.parts), supplies: Math.floor(m.supplies) },
+    kills: state.kills,
   };
 }
