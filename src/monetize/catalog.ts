@@ -135,6 +135,9 @@ export function formatSek(price: number): string {
   return `${price} kr`;
 }
 
+/** Launch is rewarded-only (issue #2). Flip when interstitials return post-launch. */
+export const INTERSTITIALS_ENABLED = false;
+
 export const INTERSTITIAL_RULES = {
   minCompletedRunsBetween: 3,
   minGapMs: 90_000,

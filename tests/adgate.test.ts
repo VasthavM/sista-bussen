@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { adsOfferable } from '../src/monetize/ads';
-import { REWARDED_ONBOARDING_FREE_MINUTES } from '../src/monetize/catalog';
+import { adsOfferable, shouldShowInterstitial } from '../src/monetize/ads';
+import { INTERSTITIALS_ENABLED, REWARDED_ONBOARDING_FREE_MINUTES } from '../src/monetize/catalog';
 import { SAVE_VERSION, createFreshProfile, normalizeSave, parseSave } from '../src/meta/save';
 
 const NOW = 1_800_000_000_000;
@@ -51,5 +51,23 @@ describe('adsOfferable', () => {
   it('shows offers at and past the gate', () => {
     expect(adsOfferable({ playtimeSeconds: GATE_SECONDS })).toBe(true);
     expect(adsOfferable({ playtimeSeconds: GATE_SECONDS + 1 })).toBe(true);
+  });
+});
+
+describe('interstitials at launch', () => {
+  it('are disabled by default', () => {
+    expect(INTERSTITIALS_ENABLED).toBe(false);
+  });
+
+  it('never show at any run count while disabled', () => {
+    for (let runs = 0; runs <= 100; runs++) {
+      const ctx = { completedRuns: runs, runsSinceInterstitial: runs, lastInterstitialAt: null, inRun: false };
+      expect(shouldShowInterstitial(ctx, NOW)).toBe(false);
+    }
+  });
+
+  it('still follow the frequency guard when switched on', () => {
+    const ctx = { completedRuns: 5, runsSinceInterstitial: 3, lastInterstitialAt: null, inRun: false };
+    expect(shouldShowInterstitial(ctx, NOW, true)).toBe(true);
   });
 });

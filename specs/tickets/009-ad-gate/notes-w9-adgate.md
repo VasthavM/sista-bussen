@@ -14,6 +14,6 @@ Branch `totto/9-ad-gate`. Gate: `REWARDED_ONBOARDING_FREE_MINUTES = 12` in `src/
 ## Notes
 - `revive_offered` analytics is now skipped when ads are not offerable.
 - `screenshots/03-levelup.png` regenerated (reroll footer gone); other screenshots reverted (seed noise).
-- Not gated: `maybeInterstitial` in game.ts (interstitials are out of scope of the five placements and not in the launch plan). One-line follow-up if wanted.
+- Interstitials: `INTERSTITIALS_ENABLED = false` in `catalog.ts`; `shouldShowInterstitial` returns false while off (third param `enabled` defaults to the flag). Guard logic intact; existing guard tests run with the flag passed on. New tests assert never-show at 0..100 runs.
 - Playtime is only counted while the run is in play; time on menu/shop is not.
 - Merge risk: `src/game.ts` also modified in the #6 checkout; my edits are ~8 lines (import, frame accumulate, onVisibility persist, openSummary persist, two `adsOfferable` props).
