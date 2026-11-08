@@ -11,6 +11,7 @@ import { createRenderer } from './render';
 import { dayKey } from './meta/daily';
 import { grantIap } from './meta/economy';
 import {
+  addScrap,
   createFreshProfile,
   ensureDailyContracts,
   parseSave,
@@ -342,18 +343,29 @@ const debugApi: GameDebugApi = {
     beginRun(selection);
   },
   setPhase: (phase) => game.setPhase(phase),
+  grantMaterials: (m) => {
+    profile.materials = {
+      scrap: profile.materials.scrap + Math.floor(m.scrap ?? 0),
+      parts: profile.materials.parts + Math.floor(m.parts ?? 0),
+      supplies: profile.materials.supplies + Math.floor(m.supplies ?? 0),
+    };
+    persist();
+    refreshMenu();
+  },
   grantTickets: (n) => {
-    profile.tickets = Math.max(0, profile.tickets + Math.floor(n));
+    addScrap(profile, n);
     persist();
     refreshMenu();
   },
   profile: () => ({
-    tickets: profile.tickets,
+    // Biljetter are Scrap since save v4; the key stays so the e2e helpers keep reading it.
+    tickets: profile.materials.scrap,
     nightUnlocked: profile.nightUnlocked,
     bestNight: profile.bestNight,
     totalRuns: profile.totalRuns,
     weaponTokens: profile.weaponTokens,
     upgrades: { ...profile.upgrades },
+    materials: { ...profile.materials },
   }),
   version: updates.versionLine(),
 };
