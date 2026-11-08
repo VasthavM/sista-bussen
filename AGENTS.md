@@ -17,18 +17,20 @@ npm install
 npm run build          # tsc --noEmit + vite build
 npm test               # vitest unit tests
 npx playwright test    # e2e (boots the built game)
-npm run build:docker-check   # clean-room docker build, same as Coolify
 H=<host> node tools/live-check.mjs   # smoke-check a deployment
 ```
 
-`npm run build:docker-check` builds the production image from scratch (no cache, no local node_modules). Local
-builds can pass while the container fails: a stray `~/node_modules/@types/node` above the repo hides missing
-dependencies from tsc. **The merger must run it before any push to main.** Needs a running Docker daemon.
-
 ## Hard rules
 
-- `src/sim/` is frozen. It's a deterministic, knife-edge balanced sim. Change it only with a failing test as the
-  reason, and re-run the 240-second win check in `tests/run.test.ts`.
+- `src/sim/` is deterministic and balanced. Since v2 (#12) it's open for planned tickets only, never for
+  drive-by tweaks. Any sim change must keep combat identity (same seeds give the same combat outcome unless the
+  ticket says otherwise) and re-run the balance harness (`tools/balance.mjs`, #11) against
+  `specs/balance/v2-baseline.md`.
+- The v2 contract between route and sim is `src/sim/map.ts`, owned by Totto (`specs/tickets/v2-contract.md`).
+- Before any push to `main`: `npm run build:docker-check` must pass. Local green has hidden Docker failures
+  twice already.
+- E2E runs: always set your own `PW_PORT`. A shared port with `reuseExistingServer` silently tests another
+  worktree's build.
 - `src/meta/` and `src/monetize/` change only test-first. Save changes need a forward migration and a migration test.
 - Every price, cap, cooldown and gate constant lives in `src/monetize/catalog.ts`. Never in UI code.
 - One HUD (DOM). The stick is the only in-canvas UI.
