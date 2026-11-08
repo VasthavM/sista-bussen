@@ -28,13 +28,26 @@ export const BUILD_SHA: string = (() => {
   }
 })();
 
+/**
+ * Tag the app's own `/sw.js` is currently served under (null = untouched). Set through
+ * `/__publish-sw?tag=x`: "a new version was deployed", for foreground update checks.
+ */
+let publishedTag: string | null = null;
+
 function testWorkerHandler(req: IncomingMessage, res: ServerResponse, next: () => void): void {
-  if (req.url?.split('?')[0] !== '/__update-sw.js') {
+  const path = req.url?.split('?')[0];
+  const url = new URL(req.url ?? '/', 'http://localhost');
+  if (path === '/__publish-sw') {
+    publishedTag = url.searchParams.get('tag')?.replace(/[^a-zA-Z0-9-]/g, '') || null;
+    res.writeHead(204).end();
+    return;
+  }
+  if (path !== '/__update-sw.js' && !(path === '/sw.js' && publishedTag)) {
     next();
     return;
   }
-  const url = new URL(req.url ?? '/', 'http://localhost');
-  const tag = (url.searchParams.get('tag') ?? 'test').replace(/[^a-zA-Z0-9-]/g, '') || 'test';
+  const raw = path === '/sw.js' ? publishedTag : url.searchParams.get('tag');
+  const tag = (raw ?? 'test').replace(/[^a-zA-Z0-9-]/g, '') || 'test';
   // Serve the real worker template with the tag substituted: same protocol, different
   // bytes, so the browser installs it as a new version of the / registration.
   const source = readFileSync(resolve(repoRoot, 'public', 'sw.js'), 'utf8')

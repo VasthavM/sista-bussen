@@ -12,11 +12,14 @@ export default defineConfig({
   reporter: [['list']],
   use: {
     baseURL: `http://127.0.0.1:${PORT}`,
-    ...devices['iPhone 13'],
-    browserName: 'chromium',
     colorScheme: 'dark',
     screenshot: 'only-on-failure',
   },
+  projects: [
+    { name: 'chromium', use: { ...devices['iPhone 13'], browserName: 'chromium' } },
+    // The iOS engine: the update flow must hold under WebKit too (#10). Only the update spec runs here.
+    { name: 'webkit', testMatch: 'update.spec.ts', use: { ...devices['iPhone 13'] } },
+  ],
   webServer: {
     command: `npm run build && npm run preview -- --port ${PORT} --strictPort --host 127.0.0.1`,
     url: `http://127.0.0.1:${PORT}`,
