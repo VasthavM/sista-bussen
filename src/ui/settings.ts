@@ -29,6 +29,8 @@ export interface SettingsDeps {
   profile: Profile;
   audio: AudioEngine;
   version: string;
+  /** Live version updates while the sheet is open (a service worker build change). */
+  subscribeVersion?: (listener: (line: string) => void) => () => void;
   persist(): void;
   onReset(): void;
   onChanged(): void;
@@ -36,7 +38,15 @@ export interface SettingsDeps {
 
 export function openSettings(deps: SettingsDeps): OverlayHandle {
   const root = el('div', 'settings sheet');
-  const handle: OverlayHandle = deps.host.push(root, { dismissable: true, label: 'Inställningar' });
+  let versionNode: HTMLElement | null = null;
+  const unsubscribeVersion = deps.subscribeVersion?.((line: string) => {
+    if (versionNode) versionNode.textContent = `SISTA BUSSEN · ${line}`;
+  });
+  const handle: OverlayHandle = deps.host.push(root, {
+    dismissable: true,
+    label: 'Inställningar',
+    onClose: () => unsubscribeVersion?.(),
+  });
 
   const head = el('div', 'sheet__head');
   head.appendChild(el('h2', 'sheet__title', 'INSTÄLLNINGAR'));
@@ -143,7 +153,8 @@ export function openSettings(deps: SettingsDeps): OverlayHandle {
     body.appendChild(danger);
 
     const about = el('div', 'settings__about');
-    about.appendChild(el('div', 'settings__version', `SISTA BUSSEN · ${deps.version}`));
+    versionNode = el('div', 'settings__version', `SISTA BUSSEN · ${deps.version}`);
+    about.appendChild(versionNode);
     about.appendChild(
       el('p', 'settings__legal', 'Sparfilen ligger i localStorage på den här enheten. Ingen inloggning, ingen server.'),
     );

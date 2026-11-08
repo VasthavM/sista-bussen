@@ -30,8 +30,9 @@ import { mountMenu, type MenuView, type RunSelection, type ShopTab } from './ui/
 import { OverlayHost } from './ui/overlay';
 import { openSettings } from './ui/settings';
 import { openShop } from './ui/shop';
+import { UpdateCoordinator } from './updates';
+import { versionLine } from './version';
 
-const VERSION = '1.0.0';
 const INTRO_KEY = 'sista-bussen.intro.v1';
 
 function mustGet(id: string): HTMLElement {
@@ -90,6 +91,11 @@ if (recovered) {
 const audio = createAudio();
 audio.setMuted(profile.settings.muted);
 
+// ---- controlled updates (SW waiting / version line) ----
+
+const updates = new UpdateCoordinator(app);
+updates.attach();
+
 const renderer = createRenderer(canvas);
 
 const overlay = new OverlayHost(uiRoot);
@@ -115,30 +121,33 @@ function refreshMenu(): void {
   menu?.refresh();
 }
 
-function showMenu(): void {
+function showMenu(announceBreak = true): void {
   game.toMenu();
   if (menu) {
     menu.refresh();
-    return;
+  } else {
+    menu = mountMenu({
+      root: uiRoot,
+      profile,
+      audio,
+      showIntro: () => shouldShowIntro(),
+      onStart: (selection) => beginRun(selection),
+      onOpenShop: (tab) => openShopSheet(tab),
+      onOpenContracts: () => openContractsSheet(),
+      onOpenCrate: () => openCrateSheet(),
+      onOpenSettings: () => openSettingsSheet(),
+      onDismissIntro: () => {
+        try {
+          localStorage.setItem(INTRO_KEY, '1');
+        } catch {
+          /* fine without storage */
+        }
+      },
+    });
   }
-  menu = mountMenu({
-    root: uiRoot,
-    profile,
-    audio,
-    showIntro: () => shouldShowIntro(),
-    onStart: (selection) => beginRun(selection),
-    onOpenShop: (tab) => openShopSheet(tab),
-    onOpenContracts: () => openContractsSheet(),
-    onOpenCrate: () => openCrateSheet(),
-    onOpenSettings: () => openSettingsSheet(),
-    onDismissIntro: () => {
-      try {
-        localStorage.setItem(INTRO_KEY, '1');
-      } catch {
-        /* fine without storage */
-      }
-    },
-  });
+  // Menu entries are natural breaks: a waiting update may apply now (never at the
+  // initial boot call, which passes `false`).
+  if (announceBreak) updates.onNaturalBreak();
 }
 
 function shouldShowIntro(): boolean {
@@ -212,7 +221,8 @@ function openSettingsSheet(): void {
     host: overlay,
     profile,
     audio,
-    version: VERSION,
+    version: updates.versionLine(),
+    subscribeVersion: (listener) => updates.subscribe(listener),
     persist,
     onReset: resetSave,
     onChanged: refreshMenu,
@@ -251,6 +261,7 @@ const game = new Game({
   persist,
   onProfileChanged: refreshMenu,
   onExitToMenu: () => showMenu(),
+  onNaturalBreak: () => updates.onNaturalBreak(),
 });
 
 // ---- resize / orientation ----
@@ -293,11 +304,17 @@ function ensureManifestLink(): void {
 
 ensureManifestLink();
 
+/** Fade the inline boot screen out only once the menu can actually render. */
+function closeBootScreen(): void {
+  const boot = document.getElementById('boot');
+  if (!boot) return;
+  boot.classList.add('boot--out');
+  window.setTimeout(() => boot.remove(), 240);
+}
+
 if ('serviceWorker' in navigator && !import.meta.env.DEV) {
   window.addEventListener('load', () => {
-    void navigator.serviceWorker.register('./sw.js').catch(() => {
-      /* offline support is a bonus, never a requirement */
-    });
+    void updates.start();
   });
 }
 
@@ -333,13 +350,17 @@ const debugApi: GameDebugApi = {
     weaponTokens: profile.weaponTokens,
     upgrades: { ...profile.upgrades },
   }),
-  version: VERSION,
+  version: updates.versionLine(),
 };
 
 window.__game = debugApi;
 
 // ---- start ----
 
-showMenu();
+// The first menu entry is the boot itself: no natural-break announcement here (a cold
+// start must not immediately reload into itself — boot a waiting worker via its banner).
+showMenu(false);
+updates.settleBoot();
+closeBootScreen();
 
 if (profile.settings.muted) audio.setMuted(true);

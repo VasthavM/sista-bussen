@@ -448,6 +448,57 @@ ul {
   }
 }
 
+/* ---------- app update banner ---------- */
+
+/* The single, quiet "Ny version klar" notification from the update coordinator.
+   Anchored above the toast stack so the two never collide; never blocks input. */
+.update-banner {
+  position: fixed;
+  left: 50%;
+  bottom: calc(64px + var(--safe-bottom));
+  transform: translate(-50%, 8px);
+  width: min(92vw, 480px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--amber);
+  background: rgba(21, 28, 37, 0.97);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5);
+  z-index: 60;
+  opacity: 0;
+  transition: opacity 180ms ease-out, transform 180ms ease-out;
+  pointer-events: auto;
+}
+
+.update-banner--in {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.update-banner__text {
+  font-size: 13px;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+}
+
+.update-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.update-banner .btn {
+  min-height: 40px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+
 /* ---------- menu / Kuren ---------- */
 
 .screen {

@@ -57,6 +57,8 @@ export interface GameDeps {
   persist(): void;
   onProfileChanged(): void;
   onExitToMenu(): void;
+  /** Menu and run summary are natural breaks: a waiting app update may apply. */
+  onNaturalBreak?(): void;
 }
 
 export interface DebugState {
@@ -168,6 +170,7 @@ export class Game {
   toMenu(): void {
     this.teardownRun();
     this.phase = 'menu';
+    this.deps.onNaturalBreak?.();
   }
 
   getState(): DebugState {
@@ -586,6 +589,8 @@ export class Game {
     }
     this.phase = 'summary';
     this.input.reset();
+    // The run summary is a natural break: a waiting app update may apply now.
+    this.deps.onNaturalBreak?.();
     if (!won && this.reviveOfferedAt !== state.revivesUsed) {
       this.reviveOfferedAt = state.revivesUsed;
       track('revive_offered', {
