@@ -1,0 +1,1774 @@
+{
+  "reports": [
+    {
+      "config": {
+        "night": 1,
+        "character": "nattvandraren",
+        "weapon": "nyckel",
+        "policy": "rush:nyckel",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0.316,
+      "endTime": {
+        "median": 217.28,
+        "p10": 162.55,
+        "p90": 240
+      },
+      "levelAt0300": {
+        "median": 11,
+        "runsReached": 158
+      },
+      "finalLevelMedian": 10,
+      "peakEnemies": {
+        "median": 165,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.9148
+        },
+        "korv": {
+          "ownedRate": 0.04,
+          "evolutionRate": 0,
+          "damageShare": 0.0213
+        },
+        "telefon": {
+          "ownedRate": 0.036,
+          "evolutionRate": 0,
+          "damageShare": 0.0109
+        },
+        "spray": {
+          "ownedRate": 0.036,
+          "evolutionRate": 0,
+          "damageShare": 0.0125
+        },
+        "vagn": {
+          "ownedRate": 0.048,
+          "evolutionRate": 0,
+          "damageShare": 0.0162
+        },
+        "ficklampa": {
+          "ownedRate": 0.046,
+          "evolutionRate": 0,
+          "damageShare": 0.0243
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 2,
+        "character": "nattvandraren",
+        "weapon": "nyckel",
+        "policy": "rush:nyckel",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0.104,
+      "endTime": {
+        "median": 175.77,
+        "p10": 132.55,
+        "p90": 240
+      },
+      "levelAt0300": {
+        "median": 12,
+        "runsReached": 52
+      },
+      "finalLevelMedian": 9,
+      "peakEnemies": {
+        "median": 163,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.921
+        },
+        "korv": {
+          "ownedRate": 0.042,
+          "evolutionRate": 0,
+          "damageShare": 0.0216
+        },
+        "telefon": {
+          "ownedRate": 0.048,
+          "evolutionRate": 0,
+          "damageShare": 0.0104
+        },
+        "spray": {
+          "ownedRate": 0.034,
+          "evolutionRate": 0,
+          "damageShare": 0.015
+        },
+        "vagn": {
+          "ownedRate": 0.04,
+          "evolutionRate": 0,
+          "damageShare": 0.0129
+        },
+        "ficklampa": {
+          "ownedRate": 0.036,
+          "evolutionRate": 0,
+          "damageShare": 0.019
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 3,
+        "character": "nattvandraren",
+        "weapon": "nyckel",
+        "policy": "rush:nyckel",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0.034,
+      "endTime": {
+        "median": 155.18,
+        "p10": 121.5,
+        "p90": 208.77
+      },
+      "levelAt0300": {
+        "median": 12,
+        "runsReached": 17
+      },
+      "finalLevelMedian": 9,
+      "peakEnemies": {
+        "median": 167,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.9241
+        },
+        "korv": {
+          "ownedRate": 0.062,
+          "evolutionRate": 0,
+          "damageShare": 0.0177
+        },
+        "telefon": {
+          "ownedRate": 0.058,
+          "evolutionRate": 0,
+          "damageShare": 0.0103
+        },
+        "spray": {
+          "ownedRate": 0.05,
+          "evolutionRate": 0,
+          "damageShare": 0.0193
+        },
+        "vagn": {
+          "ownedRate": 0.042,
+          "evolutionRate": 0,
+          "damageShare": 0.0104
+        },
+        "ficklampa": {
+          "ownedRate": 0.048,
+          "evolutionRate": 0,
+          "damageShare": 0.0182
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 4,
+        "character": "nattvandraren",
+        "weapon": "nyckel",
+        "policy": "rush:nyckel",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0.002,
+      "endTime": {
+        "median": 131.4,
+        "p10": 107.8,
+        "p90": 163.82
+      },
+      "levelAt0300": {
+        "median": 12,
+        "runsReached": 1
+      },
+      "finalLevelMedian": 8,
+      "peakEnemies": {
+        "median": 153,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.9344
+        },
+        "korv": {
+          "ownedRate": 0.028,
+          "evolutionRate": 0,
+          "damageShare": 0.0088
+        },
+        "telefon": {
+          "ownedRate": 0.028,
+          "evolutionRate": 0,
+          "damageShare": 0.0023
+        },
+        "spray": {
+          "ownedRate": 0.044,
+          "evolutionRate": 0,
+          "damageShare": 0.0189
+        },
+        "vagn": {
+          "ownedRate": 0.038,
+          "evolutionRate": 0,
+          "damageShare": 0.0092
+        },
+        "ficklampa": {
+          "ownedRate": 0.056,
+          "evolutionRate": 0,
+          "damageShare": 0.0264
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 5,
+        "character": "nattvandraren",
+        "weapon": "nyckel",
+        "policy": "rush:nyckel",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0,
+      "endTime": {
+        "median": 118.12,
+        "p10": 95.33,
+        "p90": 148.48
+      },
+      "levelAt0300": {
+        "median": null,
+        "runsReached": 0
+      },
+      "finalLevelMedian": 8,
+      "peakEnemies": {
+        "median": 151,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.946
+        },
+        "korv": {
+          "ownedRate": 0.056,
+          "evolutionRate": 0,
+          "damageShare": 0.0176
+        },
+        "telefon": {
+          "ownedRate": 0.038,
+          "evolutionRate": 0,
+          "damageShare": 0.0062
+        },
+        "spray": {
+          "ownedRate": 0.04,
+          "evolutionRate": 0,
+          "damageShare": 0.0138
+        },
+        "vagn": {
+          "ownedRate": 0.024,
+          "evolutionRate": 0,
+          "damageShare": 0.0055
+        },
+        "ficklampa": {
+          "ownedRate": 0.032,
+          "evolutionRate": 0,
+          "damageShare": 0.0108
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 1,
+        "character": "nattvandraren",
+        "weapon": "korv",
+        "policy": "rush:korv",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0.278,
+      "endTime": {
+        "median": 210.32,
+        "p10": 159.23,
+        "p90": 240
+      },
+      "levelAt0300": {
+        "median": 11,
+        "runsReached": 139
+      },
+      "finalLevelMedian": 10,
+      "peakEnemies": {
+        "median": 145,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 0.042,
+          "evolutionRate": 0,
+          "damageShare": 0.0104
+        },
+        "korv": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.9381
+        },
+        "telefon": {
+          "ownedRate": 0.034,
+          "evolutionRate": 0,
+          "damageShare": 0.0075
+        },
+        "spray": {
+          "ownedRate": 0.048,
+          "evolutionRate": 0,
+          "damageShare": 0.0117
+        },
+        "vagn": {
+          "ownedRate": 0.052,
+          "evolutionRate": 0,
+          "damageShare": 0.0134
+        },
+        "ficklampa": {
+          "ownedRate": 0.048,
+          "evolutionRate": 0,
+          "damageShare": 0.0189
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 2,
+        "character": "nattvandraren",
+        "weapon": "korv",
+        "policy": "rush:korv",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0.042,
+      "endTime": {
+        "median": 162.05,
+        "p10": 128.47,
+        "p90": 214.57
+      },
+      "levelAt0300": {
+        "median": 12,
+        "runsReached": 21
+      },
+      "finalLevelMedian": 8,
+      "peakEnemies": {
+        "median": 153,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 0.052,
+          "evolutionRate": 0,
+          "damageShare": 0.0172
+        },
+        "korv": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.9206
+        },
+        "telefon": {
+          "ownedRate": 0.038,
+          "evolutionRate": 0,
+          "damageShare": 0.0091
+        },
+        "spray": {
+          "ownedRate": 0.052,
+          "evolutionRate": 0,
+          "damageShare": 0.0198
+        },
+        "vagn": {
+          "ownedRate": 0.028,
+          "evolutionRate": 0,
+          "damageShare": 0.0092
+        },
+        "ficklampa": {
+          "ownedRate": 0.042,
+          "evolutionRate": 0,
+          "damageShare": 0.0242
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 3,
+        "character": "nattvandraren",
+        "weapon": "korv",
+        "policy": "rush:korv",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0.002,
+      "endTime": {
+        "median": 125.73,
+        "p10": 90.6,
+        "p90": 163.53
+      },
+      "levelAt0300": {
+        "median": 11,
+        "runsReached": 1
+      },
+      "finalLevelMedian": 7,
+      "peakEnemies": {
+        "median": 145,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 0.03,
+          "evolutionRate": 0,
+          "damageShare": 0.0213
+        },
+        "korv": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.924
+        },
+        "telefon": {
+          "ownedRate": 0.03,
+          "evolutionRate": 0,
+          "damageShare": 0.0077
+        },
+        "spray": {
+          "ownedRate": 0.022,
+          "evolutionRate": 0,
+          "damageShare": 0.0126
+        },
+        "vagn": {
+          "ownedRate": 0.032,
+          "evolutionRate": 0,
+          "damageShare": 0.0144
+        },
+        "ficklampa": {
+          "ownedRate": 0.026,
+          "evolutionRate": 0,
+          "damageShare": 0.02
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 4,
+        "character": "nattvandraren",
+        "weapon": "korv",
+        "policy": "rush:korv",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0,
+      "endTime": {
+        "median": 101.45,
+        "p10": 77.62,
+        "p90": 134.47
+      },
+      "levelAt0300": {
+        "median": null,
+        "runsReached": 0
+      },
+      "finalLevelMedian": 6,
+      "peakEnemies": {
+        "median": 135,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 0.016,
+          "evolutionRate": 0,
+          "damageShare": 0.0121
+        },
+        "korv": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.9217
+        },
+        "telefon": {
+          "ownedRate": 0.038,
+          "evolutionRate": 0,
+          "damageShare": 0.0109
+        },
+        "spray": {
+          "ownedRate": 0.028,
+          "evolutionRate": 0,
+          "damageShare": 0.0175
+        },
+        "vagn": {
+          "ownedRate": 0.03,
+          "evolutionRate": 0,
+          "damageShare": 0.0149
+        },
+        "ficklampa": {
+          "ownedRate": 0.028,
+          "evolutionRate": 0,
+          "damageShare": 0.023
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 5,
+        "character": "nattvandraren",
+        "weapon": "korv",
+        "policy": "rush:korv",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0,
+      "endTime": {
+        "median": 87.77,
+        "p10": 61.13,
+        "p90": 114.45
+      },
+      "levelAt0300": {
+        "median": null,
+        "runsReached": 0
+      },
+      "finalLevelMedian": 5,
+      "peakEnemies": {
+        "median": 127,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 0.028,
+          "evolutionRate": 0,
+          "damageShare": 0.0313
+        },
+        "korv": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.9035
+        },
+        "telefon": {
+          "ownedRate": 0.014,
+          "evolutionRate": 0,
+          "damageShare": 0.0048
+        },
+        "spray": {
+          "ownedRate": 0.034,
+          "evolutionRate": 0,
+          "damageShare": 0.0244
+        },
+        "vagn": {
+          "ownedRate": 0.024,
+          "evolutionRate": 0,
+          "damageShare": 0.0135
+        },
+        "ficklampa": {
+          "ownedRate": 0.018,
+          "evolutionRate": 0,
+          "damageShare": 0.0224
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 1,
+        "character": "nattvandraren",
+        "weapon": "telefon",
+        "policy": "rush:telefon",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0.058,
+      "endTime": {
+        "median": 167.37,
+        "p10": 132.82,
+        "p90": 228.87
+      },
+      "levelAt0300": {
+        "median": 11,
+        "runsReached": 29
+      },
+      "finalLevelMedian": 7,
+      "peakEnemies": {
+        "median": 159,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 0.038,
+          "evolutionRate": 0,
+          "damageShare": 0.023
+        },
+        "korv": {
+          "ownedRate": 0.03,
+          "evolutionRate": 0,
+          "damageShare": 0.0237
+        },
+        "telefon": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.8522
+        },
+        "spray": {
+          "ownedRate": 0.048,
+          "evolutionRate": 0,
+          "damageShare": 0.0335
+        },
+        "vagn": {
+          "ownedRate": 0.046,
+          "evolutionRate": 0,
+          "damageShare": 0.0325
+        },
+        "ficklampa": {
+          "ownedRate": 0.04,
+          "evolutionRate": 0,
+          "damageShare": 0.0351
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 2,
+        "character": "nattvandraren",
+        "weapon": "telefon",
+        "policy": "rush:telefon",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0.006,
+      "endTime": {
+        "median": 136.25,
+        "p10": 111.9,
+        "p90": 171.83
+      },
+      "levelAt0300": {
+        "median": 11,
+        "runsReached": 3
+      },
+      "finalLevelMedian": 6,
+      "peakEnemies": {
+        "median": 168,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 0.038,
+          "evolutionRate": 0,
+          "damageShare": 0.0307
+        },
+        "korv": {
+          "ownedRate": 0.028,
+          "evolutionRate": 0,
+          "damageShare": 0.0321
+        },
+        "telefon": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.8544
+        },
+        "spray": {
+          "ownedRate": 0.022,
+          "evolutionRate": 0,
+          "damageShare": 0.024
+        },
+        "vagn": {
+          "ownedRate": 0.024,
+          "evolutionRate": 0,
+          "damageShare": 0.0156
+        },
+        "ficklampa": {
+          "ownedRate": 0.028,
+          "evolutionRate": 0,
+          "damageShare": 0.0433
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 3,
+        "character": "nattvandraren",
+        "weapon": "telefon",
+        "policy": "rush:telefon",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0,
+      "endTime": {
+        "median": 112.65,
+        "p10": 91.92,
+        "p90": 143.27
+      },
+      "levelAt0300": {
+        "median": null,
+        "runsReached": 0
+      },
+      "finalLevelMedian": 5,
+      "peakEnemies": {
+        "median": 165,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 0.034,
+          "evolutionRate": 0,
+          "damageShare": 0.0449
+        },
+        "korv": {
+          "ownedRate": 0.016,
+          "evolutionRate": 0,
+          "damageShare": 0.0178
+        },
+        "telefon": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.8362
+        },
+        "spray": {
+          "ownedRate": 0.034,
+          "evolutionRate": 0,
+          "damageShare": 0.0385
+        },
+        "vagn": {
+          "ownedRate": 0.026,
+          "evolutionRate": 0,
+          "damageShare": 0.0162
+        },
+        "ficklampa": {
+          "ownedRate": 0.032,
+          "evolutionRate": 0,
+          "damageShare": 0.0463
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 4,
+        "character": "nattvandraren",
+        "weapon": "telefon",
+        "policy": "rush:telefon",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0,
+      "endTime": {
+        "median": 95.43,
+        "p10": 77.68,
+        "p90": 116.82
+      },
+      "levelAt0300": {
+        "median": null,
+        "runsReached": 0
+      },
+      "finalLevelMedian": 4,
+      "peakEnemies": {
+        "median": 156,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 0.024,
+          "evolutionRate": 0,
+          "damageShare": 0.0363
+        },
+        "korv": {
+          "ownedRate": 0.018,
+          "evolutionRate": 0,
+          "damageShare": 0.0166
+        },
+        "telefon": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.858
+        },
+        "spray": {
+          "ownedRate": 0.03,
+          "evolutionRate": 0,
+          "damageShare": 0.0309
+        },
+        "vagn": {
+          "ownedRate": 0.024,
+          "evolutionRate": 0,
+          "damageShare": 0.0164
+        },
+        "ficklampa": {
+          "ownedRate": 0.02,
+          "evolutionRate": 0,
+          "damageShare": 0.0418
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 5,
+        "character": "nattvandraren",
+        "weapon": "telefon",
+        "policy": "rush:telefon",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0,
+      "endTime": {
+        "median": 79.55,
+        "p10": 62.85,
+        "p90": 102.02
+      },
+      "levelAt0300": {
+        "median": null,
+        "runsReached": 0
+      },
+      "finalLevelMedian": 4,
+      "peakEnemies": {
+        "median": 141,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 0.028,
+          "evolutionRate": 0,
+          "damageShare": 0.0518
+        },
+        "korv": {
+          "ownedRate": 0.014,
+          "evolutionRate": 0,
+          "damageShare": 0.0149
+        },
+        "telefon": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.8388
+        },
+        "spray": {
+          "ownedRate": 0.026,
+          "evolutionRate": 0,
+          "damageShare": 0.033
+        },
+        "vagn": {
+          "ownedRate": 0.014,
+          "evolutionRate": 0,
+          "damageShare": 0.0112
+        },
+        "ficklampa": {
+          "ownedRate": 0.024,
+          "evolutionRate": 0,
+          "damageShare": 0.0503
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 1,
+        "character": "nattvandraren",
+        "weapon": "spray",
+        "policy": "rush:spray",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0.154,
+      "endTime": {
+        "median": 188.98,
+        "p10": 145.82,
+        "p90": 240
+      },
+      "levelAt0300": {
+        "median": 11,
+        "runsReached": 77
+      },
+      "finalLevelMedian": 9,
+      "peakEnemies": {
+        "median": 133,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 0.044,
+          "evolutionRate": 0,
+          "damageShare": 0.0223
+        },
+        "korv": {
+          "ownedRate": 0.048,
+          "evolutionRate": 0,
+          "damageShare": 0.0287
+        },
+        "telefon": {
+          "ownedRate": 0.04,
+          "evolutionRate": 0,
+          "damageShare": 0.0147
+        },
+        "spray": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.8862
+        },
+        "vagn": {
+          "ownedRate": 0.048,
+          "evolutionRate": 0,
+          "damageShare": 0.0202
+        },
+        "ficklampa": {
+          "ownedRate": 0.044,
+          "evolutionRate": 0,
+          "damageShare": 0.0279
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 2,
+        "character": "nattvandraren",
+        "weapon": "spray",
+        "policy": "rush:spray",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0.046,
+      "endTime": {
+        "median": 153.77,
+        "p10": 114.33,
+        "p90": 213
+      },
+      "levelAt0300": {
+        "median": 11,
+        "runsReached": 23
+      },
+      "finalLevelMedian": 8,
+      "peakEnemies": {
+        "median": 128,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 0.036,
+          "evolutionRate": 0,
+          "damageShare": 0.0248
+        },
+        "korv": {
+          "ownedRate": 0.044,
+          "evolutionRate": 0,
+          "damageShare": 0.0372
+        },
+        "telefon": {
+          "ownedRate": 0.044,
+          "evolutionRate": 0,
+          "damageShare": 0.0137
+        },
+        "spray": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.8753
+        },
+        "vagn": {
+          "ownedRate": 0.052,
+          "evolutionRate": 0,
+          "damageShare": 0.023
+        },
+        "ficklampa": {
+          "ownedRate": 0.038,
+          "evolutionRate": 0,
+          "damageShare": 0.0261
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 3,
+        "character": "nattvandraren",
+        "weapon": "spray",
+        "policy": "rush:spray",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0.008,
+      "endTime": {
+        "median": 122.08,
+        "p10": 88.02,
+        "p90": 163.95
+      },
+      "levelAt0300": {
+        "median": 11,
+        "runsReached": 4
+      },
+      "finalLevelMedian": 7,
+      "peakEnemies": {
+        "median": 122,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 0.032,
+          "evolutionRate": 0,
+          "damageShare": 0.0166
+        },
+        "korv": {
+          "ownedRate": 0.034,
+          "evolutionRate": 0,
+          "damageShare": 0.0196
+        },
+        "telefon": {
+          "ownedRate": 0.046,
+          "evolutionRate": 0,
+          "damageShare": 0.0161
+        },
+        "spray": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.9108
+        },
+        "vagn": {
+          "ownedRate": 0.038,
+          "evolutionRate": 0,
+          "damageShare": 0.0144
+        },
+        "ficklampa": {
+          "ownedRate": 0.028,
+          "evolutionRate": 0,
+          "damageShare": 0.0225
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 4,
+        "character": "nattvandraren",
+        "weapon": "spray",
+        "policy": "rush:spray",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0,
+      "endTime": {
+        "median": 103.37,
+        "p10": 73.23,
+        "p90": 139.7
+      },
+      "levelAt0300": {
+        "median": null,
+        "runsReached": 0
+      },
+      "finalLevelMedian": 6,
+      "peakEnemies": {
+        "median": 117,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 0.034,
+          "evolutionRate": 0,
+          "damageShare": 0.0291
+        },
+        "korv": {
+          "ownedRate": 0.044,
+          "evolutionRate": 0,
+          "damageShare": 0.028
+        },
+        "telefon": {
+          "ownedRate": 0.036,
+          "evolutionRate": 0,
+          "damageShare": 0.0109
+        },
+        "spray": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.8972
+        },
+        "vagn": {
+          "ownedRate": 0.024,
+          "evolutionRate": 0,
+          "damageShare": 0.0107
+        },
+        "ficklampa": {
+          "ownedRate": 0.032,
+          "evolutionRate": 0,
+          "damageShare": 0.0242
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 5,
+        "character": "nattvandraren",
+        "weapon": "spray",
+        "policy": "rush:spray",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0,
+      "endTime": {
+        "median": 79.6,
+        "p10": 62.88,
+        "p90": 108.83
+      },
+      "levelAt0300": {
+        "median": null,
+        "runsReached": 0
+      },
+      "finalLevelMedian": 5,
+      "peakEnemies": {
+        "median": 103,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 0.022,
+          "evolutionRate": 0,
+          "damageShare": 0.0226
+        },
+        "korv": {
+          "ownedRate": 0.034,
+          "evolutionRate": 0,
+          "damageShare": 0.0228
+        },
+        "telefon": {
+          "ownedRate": 0.022,
+          "evolutionRate": 0,
+          "damageShare": 0.0067
+        },
+        "spray": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.915
+        },
+        "vagn": {
+          "ownedRate": 0.036,
+          "evolutionRate": 0,
+          "damageShare": 0.0194
+        },
+        "ficklampa": {
+          "ownedRate": 0.02,
+          "evolutionRate": 0,
+          "damageShare": 0.0135
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 1,
+        "character": "nattvandraren",
+        "weapon": "vagn",
+        "policy": "rush:vagn",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0.038,
+      "endTime": {
+        "median": 171.92,
+        "p10": 138.15,
+        "p90": 217.35
+      },
+      "levelAt0300": {
+        "median": 10,
+        "runsReached": 19
+      },
+      "finalLevelMedian": 8,
+      "peakEnemies": {
+        "median": 157,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 0.026,
+          "evolutionRate": 0,
+          "damageShare": 0.0138
+        },
+        "korv": {
+          "ownedRate": 0.04,
+          "evolutionRate": 0,
+          "damageShare": 0.032
+        },
+        "telefon": {
+          "ownedRate": 0.044,
+          "evolutionRate": 0,
+          "damageShare": 0.0224
+        },
+        "spray": {
+          "ownedRate": 0.04,
+          "evolutionRate": 0,
+          "damageShare": 0.025
+        },
+        "vagn": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.8791
+        },
+        "ficklampa": {
+          "ownedRate": 0.04,
+          "evolutionRate": 0,
+          "damageShare": 0.0276
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 2,
+        "character": "nattvandraren",
+        "weapon": "vagn",
+        "policy": "rush:vagn",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0.002,
+      "endTime": {
+        "median": 138.73,
+        "p10": 115.78,
+        "p90": 174.45
+      },
+      "levelAt0300": {
+        "median": 11,
+        "runsReached": 1
+      },
+      "finalLevelMedian": 7,
+      "peakEnemies": {
+        "median": 159,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 0.056,
+          "evolutionRate": 0,
+          "damageShare": 0.0353
+        },
+        "korv": {
+          "ownedRate": 0.04,
+          "evolutionRate": 0,
+          "damageShare": 0.0339
+        },
+        "telefon": {
+          "ownedRate": 0.024,
+          "evolutionRate": 0,
+          "damageShare": 0.0107
+        },
+        "spray": {
+          "ownedRate": 0.026,
+          "evolutionRate": 0,
+          "damageShare": 0.0169
+        },
+        "vagn": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.876
+        },
+        "ficklampa": {
+          "ownedRate": 0.032,
+          "evolutionRate": 0,
+          "damageShare": 0.0272
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 3,
+        "character": "nattvandraren",
+        "weapon": "vagn",
+        "policy": "rush:vagn",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0,
+      "endTime": {
+        "median": 119.85,
+        "p10": 96.73,
+        "p90": 150.58
+      },
+      "levelAt0300": {
+        "median": null,
+        "runsReached": 0
+      },
+      "finalLevelMedian": 6,
+      "peakEnemies": {
+        "median": 159,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 0.02,
+          "evolutionRate": 0,
+          "damageShare": 0.0189
+        },
+        "korv": {
+          "ownedRate": 0.028,
+          "evolutionRate": 0,
+          "damageShare": 0.0248
+        },
+        "telefon": {
+          "ownedRate": 0.044,
+          "evolutionRate": 0,
+          "damageShare": 0.0165
+        },
+        "spray": {
+          "ownedRate": 0.032,
+          "evolutionRate": 0,
+          "damageShare": 0.0225
+        },
+        "vagn": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.8993
+        },
+        "ficklampa": {
+          "ownedRate": 0.016,
+          "evolutionRate": 0,
+          "damageShare": 0.018
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 4,
+        "character": "nattvandraren",
+        "weapon": "vagn",
+        "policy": "rush:vagn",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0,
+      "endTime": {
+        "median": 102.25,
+        "p10": 86.77,
+        "p90": 125.8
+      },
+      "levelAt0300": {
+        "median": null,
+        "runsReached": 0
+      },
+      "finalLevelMedian": 5,
+      "peakEnemies": {
+        "median": 158,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 0.026,
+          "evolutionRate": 0,
+          "damageShare": 0.0332
+        },
+        "korv": {
+          "ownedRate": 0.024,
+          "evolutionRate": 0,
+          "damageShare": 0.0221
+        },
+        "telefon": {
+          "ownedRate": 0.026,
+          "evolutionRate": 0,
+          "damageShare": 0.0097
+        },
+        "spray": {
+          "ownedRate": 0.028,
+          "evolutionRate": 0,
+          "damageShare": 0.0155
+        },
+        "vagn": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.8925
+        },
+        "ficklampa": {
+          "ownedRate": 0.024,
+          "evolutionRate": 0,
+          "damageShare": 0.027
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 5,
+        "character": "nattvandraren",
+        "weapon": "vagn",
+        "policy": "rush:vagn",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0,
+      "endTime": {
+        "median": 90.03,
+        "p10": 71.5,
+        "p90": 112.68
+      },
+      "levelAt0300": {
+        "median": null,
+        "runsReached": 0
+      },
+      "finalLevelMedian": 5,
+      "peakEnemies": {
+        "median": 145,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 0.016,
+          "evolutionRate": 0,
+          "damageShare": 0.0207
+        },
+        "korv": {
+          "ownedRate": 0.03,
+          "evolutionRate": 0,
+          "damageShare": 0.0307
+        },
+        "telefon": {
+          "ownedRate": 0.032,
+          "evolutionRate": 0,
+          "damageShare": 0.0102
+        },
+        "spray": {
+          "ownedRate": 0.012,
+          "evolutionRate": 0,
+          "damageShare": 0.0104
+        },
+        "vagn": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.9111
+        },
+        "ficklampa": {
+          "ownedRate": 0.016,
+          "evolutionRate": 0,
+          "damageShare": 0.0168
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 1,
+        "character": "nattvandraren",
+        "weapon": "ficklampa",
+        "policy": "rush:ficklampa",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0.496,
+      "endTime": {
+        "median": 238.83,
+        "p10": 158.8,
+        "p90": 240
+      },
+      "levelAt0300": {
+        "median": 12,
+        "runsReached": 248
+      },
+      "finalLevelMedian": 11,
+      "peakEnemies": {
+        "median": 124,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 0.044,
+          "evolutionRate": 0,
+          "damageShare": 0.0097
+        },
+        "korv": {
+          "ownedRate": 0.066,
+          "evolutionRate": 0,
+          "damageShare": 0.0281
+        },
+        "telefon": {
+          "ownedRate": 0.07,
+          "evolutionRate": 0,
+          "damageShare": 0.0189
+        },
+        "spray": {
+          "ownedRate": 0.056,
+          "evolutionRate": 0,
+          "damageShare": 0.0166
+        },
+        "vagn": {
+          "ownedRate": 0.058,
+          "evolutionRate": 0,
+          "damageShare": 0.019
+        },
+        "ficklampa": {
+          "ownedRate": 1,
+          "evolutionRate": 0.004,
+          "damageShare": 0.9077
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 2,
+        "character": "nattvandraren",
+        "weapon": "ficklampa",
+        "policy": "rush:ficklampa",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0.236,
+      "endTime": {
+        "median": 186.25,
+        "p10": 135.6,
+        "p90": 240
+      },
+      "levelAt0300": {
+        "median": 12,
+        "runsReached": 118
+      },
+      "finalLevelMedian": 10,
+      "peakEnemies": {
+        "median": 144,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 0.042,
+          "evolutionRate": 0,
+          "damageShare": 0.0116
+        },
+        "korv": {
+          "ownedRate": 0.052,
+          "evolutionRate": 0,
+          "damageShare": 0.0248
+        },
+        "telefon": {
+          "ownedRate": 0.05,
+          "evolutionRate": 0,
+          "damageShare": 0.0109
+        },
+        "spray": {
+          "ownedRate": 0.054,
+          "evolutionRate": 0,
+          "damageShare": 0.0198
+        },
+        "vagn": {
+          "ownedRate": 0.028,
+          "evolutionRate": 0,
+          "damageShare": 0.0091
+        },
+        "ficklampa": {
+          "ownedRate": 1,
+          "evolutionRate": 0.004,
+          "damageShare": 0.9237
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 3,
+        "character": "nattvandraren",
+        "weapon": "ficklampa",
+        "policy": "rush:ficklampa",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0.078,
+      "endTime": {
+        "median": 155.65,
+        "p10": 112.67,
+        "p90": 227.18
+      },
+      "levelAt0300": {
+        "median": 12,
+        "runsReached": 39
+      },
+      "finalLevelMedian": 8,
+      "peakEnemies": {
+        "median": 156,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 0.046,
+          "evolutionRate": 0,
+          "damageShare": 0.019
+        },
+        "korv": {
+          "ownedRate": 0.038,
+          "evolutionRate": 0,
+          "damageShare": 0.0142
+        },
+        "telefon": {
+          "ownedRate": 0.044,
+          "evolutionRate": 0,
+          "damageShare": 0.0092
+        },
+        "spray": {
+          "ownedRate": 0.034,
+          "evolutionRate": 0,
+          "damageShare": 0.0114
+        },
+        "vagn": {
+          "ownedRate": 0.028,
+          "evolutionRate": 0,
+          "damageShare": 0.0085
+        },
+        "ficklampa": {
+          "ownedRate": 1,
+          "evolutionRate": 0.004,
+          "damageShare": 0.9377
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 4,
+        "character": "nattvandraren",
+        "weapon": "ficklampa",
+        "policy": "rush:ficklampa",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0.034,
+      "endTime": {
+        "median": 128.43,
+        "p10": 95.83,
+        "p90": 181.23
+      },
+      "levelAt0300": {
+        "median": 12,
+        "runsReached": 17
+      },
+      "finalLevelMedian": 7,
+      "peakEnemies": {
+        "median": 149,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 0.046,
+          "evolutionRate": 0,
+          "damageShare": 0.0221
+        },
+        "korv": {
+          "ownedRate": 0.046,
+          "evolutionRate": 0,
+          "damageShare": 0.0254
+        },
+        "telefon": {
+          "ownedRate": 0.026,
+          "evolutionRate": 0,
+          "damageShare": 0.0055
+        },
+        "spray": {
+          "ownedRate": 0.038,
+          "evolutionRate": 0,
+          "damageShare": 0.0131
+        },
+        "vagn": {
+          "ownedRate": 0.024,
+          "evolutionRate": 0,
+          "damageShare": 0.0062
+        },
+        "ficklampa": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.9277
+        }
+      }
+    },
+    {
+      "config": {
+        "night": 5,
+        "character": "nattvandraren",
+        "weapon": "ficklampa",
+        "policy": "rush:ficklampa",
+        "mods": {},
+        "n": 500,
+        "baseSeed": 1000
+      },
+      "runs": 500,
+      "winRate": 0.002,
+      "endTime": {
+        "median": 101.97,
+        "p10": 74.23,
+        "p90": 134.78
+      },
+      "levelAt0300": {
+        "median": 11,
+        "runsReached": 1
+      },
+      "finalLevelMedian": 6,
+      "peakEnemies": {
+        "median": 137,
+        "max": 180
+      },
+      "weapons": {
+        "nyckel": {
+          "ownedRate": 0.036,
+          "evolutionRate": 0,
+          "damageShare": 0.0199
+        },
+        "korv": {
+          "ownedRate": 0.026,
+          "evolutionRate": 0,
+          "damageShare": 0.0139
+        },
+        "telefon": {
+          "ownedRate": 0.048,
+          "evolutionRate": 0,
+          "damageShare": 0.012
+        },
+        "spray": {
+          "ownedRate": 0.036,
+          "evolutionRate": 0,
+          "damageShare": 0.0176
+        },
+        "vagn": {
+          "ownedRate": 0.022,
+          "evolutionRate": 0,
+          "damageShare": 0.0082
+        },
+        "ficklampa": {
+          "ownedRate": 1,
+          "evolutionRate": 0,
+          "damageShare": 0.9285
+        }
+      }
+    }
+  ]
+}
