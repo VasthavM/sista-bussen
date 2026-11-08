@@ -6,6 +6,7 @@ import type { CharacterId, WeaponId } from '../sim/types';
 import { isWeaponUnlocked, WEAPON_UNLOCK_COST } from '../meta/shop';
 import type { Profile } from '../meta/save';
 import { button, el, fmt } from './kit';
+import { firstUnlockedWeapon, loadLoadout, saveLoadout } from './loadout';
 
 export type ShopTab = 'upgrades' | 'weapons' | 'colours' | 'store';
 
@@ -39,18 +40,37 @@ export function mountMenu(deps: MenuDeps): MenuView {
   root.dataset.screen = 'menu';
   deps.root.appendChild(root);
 
-  const firstUnlocked = WEAPON_ORDER.find((id) => isWeaponUnlocked(deps.profile, id)) ?? 'nyckel';
+  const weaponOpen = (id: WeaponId): boolean => isWeaponUnlocked(deps.profile, id);
   const selection: RunSelection = {
     night: Math.max(1, deps.profile.nightUnlocked),
-    character: 'nattvandraren',
-    weapon: firstUnlocked,
+    ...loadLoadout(storage(), weaponOpen),
   };
+  /** Which loadout sheet is open, and which control gets focus after the next render. */
+  let sheet: 'character' | 'weapon' | null = null;
+  let focusAfter: string | null = null;
+
+  function choose(): void {
+    saveLoadout(storage(), { character: selection.character, weapon: selection.weapon });
+  }
+
+  function closeSheet(): void {
+    if (!sheet) return;
+    focusAfter = `[data-loadout="${sheet}"]`;
+    sheet = null;
+    render();
+  }
+
+  const onKey = (event: KeyboardEvent): void => {
+    if (event.key === 'Escape' && sheet) {
+      event.preventDefault();
+      closeSheet();
+    }
+  };
+  document.addEventListener('keydown', onKey);
 
   function render(): void {
     while (root.firstChild) root.removeChild(root.firstChild);
-    if (!isWeaponUnlocked(deps.profile, selection.weapon)) {
-      selection.weapon = WEAPON_ORDER.find((id) => isWeaponUnlocked(deps.profile, id)) ?? 'nyckel';
-    }
+    if (!weaponOpen(selection.weapon)) selection.weapon = firstUnlockedWeapon(weaponOpen);
     if (selection.night > deps.profile.nightUnlocked) selection.night = deps.profile.nightUnlocked;
 
     // ---- signage header ----
@@ -125,76 +145,15 @@ export function mountMenu(deps: MenuDeps): MenuView {
     }
     body.appendChild(nightCard);
 
-    // ---- characters ----
-    const charCard = el('section', 'menu__card');
-    charCard.appendChild(el('h2', 'menu__card-title', 'Vem är du i natt?'));
-    const chars = el('div', 'choices choices--char');
-    for (const id of CHARACTER_ORDER) {
-      const def = CHARACTERS[id];
-      const pick = el('button', `choice choice--char${selection.character === id ? ' is-active' : ''}`);
-      pick.type = 'button';
-      pick.dataset.character = id;
-      const dot = el('span', 'choice__dot');
-      dot.style.background = def.colour;
-      pick.appendChild(dot);
-      pick.appendChild(el('span', 'choice__name', def.name));
-      pick.appendChild(el('span', 'choice__title', def.title));
-      pick.appendChild(el('span', 'choice__desc', def.desc));
-      pick.addEventListener('click', (event) => {
-        event.preventDefault();
-        selection.character = id;
-        deps.audio.play('ui_click');
-        render();
-      });
-      chars.appendChild(pick);
-    }
-    charCard.appendChild(chars);
-    body.appendChild(charCard);
-
-    // ---- weapons ----
-    const weaponCard = el('section', 'menu__card');
-    weaponCard.appendChild(el('h2', 'menu__card-title', 'Vad har du i fickan?'));
-    const weapons = el('div', 'choices choices--weapon');
-    for (const id of WEAPON_ORDER) {
-      const def = WEAPONS[id];
-      const unlockedWeapon = isWeaponUnlocked(deps.profile, id);
-      const pick = el(
-        'button',
-        `choice choice--weapon${selection.weapon === id ? ' is-active' : ''}${unlockedWeapon ? '' : ' is-locked'}`,
-      );
-      pick.type = 'button';
-      pick.dataset.weapon = id;
-      const swatch = el('span', 'choice__swatch');
-      swatch.style.background = def.colour;
-      pick.appendChild(swatch);
-      pick.appendChild(el('span', 'choice__name', def.name));
-      pick.appendChild(el('span', 'choice__title', def.evolvedName));
-      pick.appendChild(
-        el('span', 'choice__desc', unlockedWeapon ? def.desc : `Låst · ${fmt(WEAPON_UNLOCK_COST)} Biljetter`),
-      );
-      pick.addEventListener('click', (event) => {
-        event.preventDefault();
-        if (!unlockedWeapon) {
-          deps.audio.play('ui_click');
-          deps.onOpenShop('weapons');
-          return;
-        }
-        selection.weapon = id;
-        deps.audio.play('ui_click');
-        render();
-      });
-      weapons.appendChild(pick);
-    }
-    weaponCard.appendChild(weapons);
-    body.appendChild(weaponCard);
     root.appendChild(body);
 
     // ---- start + doors ----
     const foot = el('div', 'menu__foot');
+    foot.appendChild(buildLoadoutRow());
     const startWrap = el('div', 'menu__start');
     const start = button('ÅK UT I NATTEN', {
       variant: 'primary',
-      sub: `Natt ${selection.night} · ${CHARACTERS[selection.character].name} · ${WEAPONS[selection.weapon].name}`,
+      sub: `Natt ${selection.night}`,
       onClick: () => {
         deps.audio.play('ui_click');
         deps.onStart({ ...selection });
@@ -248,7 +207,171 @@ export function mountMenu(deps: MenuDeps): MenuView {
     foot.appendChild(doors);
     root.appendChild(foot);
 
+    if (sheet) root.appendChild(buildSheet(sheet));
     if (deps.showIntro()) root.appendChild(buildIntro(deps));
+
+    if (focusAfter) {
+      root.querySelector<HTMLElement>(focusAfter)?.focus({ preventScroll: true });
+      focusAfter = null;
+    }
+  }
+
+  /** Two big taps directly above the start button: who you are, what is in your pocket. */
+  function buildLoadoutRow(): HTMLElement {
+    const row = el('div', 'loadout');
+    const who = CHARACTERS[selection.character];
+    const gun = WEAPONS[selection.weapon];
+    row.appendChild(
+      slotButton('character', 'Vem är du i natt?', who.name, who.title, who.colour, () => {
+        sheet = 'character';
+        focusAfter = '.pick.is-active';
+        render();
+      }),
+    );
+    row.appendChild(
+      slotButton('weapon', 'Vad har du i fickan?', gun.name, gun.desc, gun.colour, () => {
+        sheet = 'weapon';
+        focusAfter = '.pick.is-active';
+        render();
+      }),
+    );
+    return row;
+  }
+
+  function slotButton(
+    slot: 'character' | 'weapon',
+    label: string,
+    name: string,
+    line: string,
+    colour: string,
+    onClick: () => void,
+  ): HTMLButtonElement {
+    const btn = el('button', 'loadout__slot');
+    btn.type = 'button';
+    btn.dataset.loadout = slot;
+    btn.setAttribute('aria-haspopup', 'dialog');
+    btn.setAttribute('aria-label', `${label} ${name}. Byt.`);
+    btn.style.setProperty('--slot', colour);
+    btn.appendChild(el('span', 'loadout__label', label));
+    const top = el('span', 'loadout__top');
+    top.appendChild(el('span', 'loadout__name', name));
+    top.appendChild(el('span', 'loadout__change', 'BYT ›'));
+    btn.appendChild(top);
+    btn.appendChild(el('span', 'loadout__line', line));
+    btn.addEventListener('click', (event) => {
+      event.preventDefault();
+      deps.audio.play('ui_click');
+      onClick();
+    });
+    return btn;
+  }
+
+  function buildSheet(kind: 'character' | 'weapon'): HTMLElement {
+    const layer = el('div', 'loadout-sheet');
+    layer.dataset.sheet = kind;
+    layer.addEventListener('click', (event) => {
+      if (event.target === layer) closeSheet();
+    });
+    const panel = el('div', 'loadout-sheet__panel');
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-modal', 'true');
+    const title = kind === 'character' ? 'Vem är du i natt?' : 'Vad har du i fickan?';
+    panel.setAttribute('aria-label', title);
+    panel.appendChild(el('h2', 'loadout-sheet__title', title));
+    const list = el('div', 'picks');
+
+    if (kind === 'character') {
+      for (const id of CHARACTER_ORDER) {
+        const def = CHARACTERS[id];
+        list.appendChild(
+          pickRow({
+            key: { character: id },
+            active: selection.character === id,
+            colour: def.colour,
+            name: def.name,
+            tag: def.title,
+            desc: def.desc,
+            onPick: () => {
+              selection.character = id;
+              choose();
+              closeSheet();
+            },
+          }),
+        );
+      }
+    } else {
+      for (const id of WEAPON_ORDER) {
+        const def = WEAPONS[id];
+        const open = weaponOpen(id);
+        list.appendChild(
+          pickRow({
+            key: { weapon: id },
+            active: selection.weapon === id,
+            locked: !open,
+            colour: def.colour,
+            name: def.name,
+            tag: def.evolvedName,
+            desc: def.desc,
+            lockNote: `LÅST · ${fmt(WEAPON_UNLOCK_COST)} Biljetter · till butiken ›`,
+            onPick: () => {
+              if (!open) {
+                // Leave the sheet closed behind the shop so coming back lands on the menu.
+                sheet = null;
+                render();
+                deps.onOpenShop('weapons');
+                return;
+              }
+              selection.weapon = id;
+              choose();
+              closeSheet();
+            },
+          }),
+        );
+      }
+    }
+    panel.appendChild(list);
+    const done = button('STÄNG', { variant: 'ghost', onClick: closeSheet });
+    done.classList.add('loadout-sheet__close');
+    panel.appendChild(done);
+    layer.appendChild(panel);
+    return layer;
+  }
+
+  interface PickOptions {
+    key: { character: CharacterId } | { weapon: WeaponId };
+    active: boolean;
+    locked?: boolean;
+    colour: string;
+    name: string;
+    tag: string;
+    desc: string;
+    lockNote?: string;
+    onPick: () => void;
+  }
+
+  function pickRow(o: PickOptions): HTMLButtonElement {
+    const pick = el('button', `pick${o.active ? ' is-active' : ''}${o.locked ? ' is-locked' : ''}`);
+    pick.type = 'button';
+    if ('character' in o.key) pick.dataset.character = o.key.character;
+    else pick.dataset.weapon = o.key.weapon;
+    pick.setAttribute('aria-pressed', String(o.active));
+    pick.style.setProperty('--slot', o.colour);
+    pick.appendChild(el('span', 'pick__swatch'));
+    const text = el('span', 'pick__text');
+    const head = el('span', 'pick__head');
+    head.appendChild(el('span', 'pick__name', o.name));
+    head.appendChild(el('span', 'pick__tag', o.tag));
+    text.appendChild(head);
+    text.appendChild(el('span', 'pick__desc', o.desc));
+    if (o.locked && o.lockNote) text.appendChild(el('span', 'pick__lock', o.lockNote));
+    pick.appendChild(text);
+    if (o.active) pick.appendChild(el('span', 'pick__check', 'VALD'));
+    pick.addEventListener('click', (event) => {
+      event.preventDefault();
+      deps.audio.play('ui_click');
+      o.onPick();
+    });
+    return pick;
   }
 
   render();
@@ -258,12 +381,21 @@ export function mountMenu(deps: MenuDeps): MenuView {
       render();
     },
     destroy(): void {
+      document.removeEventListener('keydown', onKey);
       if (root.parentNode) root.parentNode.removeChild(root);
     },
     selection(): RunSelection {
       return { ...selection };
     },
   };
+}
+
+function storage(): Storage | null {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
 }
 
 function buildIntro(deps: MenuDeps): HTMLElement {
