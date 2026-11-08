@@ -72,8 +72,9 @@ Phases 1–2 are not wasted by it: every one of them ships to the store build to
 Details and sources: issue #8. Two things remain unverified and are settled at submission, not asserted here —
 the age-rating bucket and EU DSA trader status, which if applicable publishes contact details publicly.
 
-**NEEDS MAX before this phase starts:** an Apple Developer account decision (cost, and whether the game is
-worth the annual fee), and a decision on whether to ship free-with-ads first or with purchases from day one.
+**Decisions made:** launch is **free-with-ads, no IAP** — rewarded-only with a 10–15 minute ad-free
+onboarding gate (see #2). The only open item is the Apple Developer organization enrollment, submitted
+2026-11-08 and awaiting verification. Store SKUs return post-launch with the wrapper.
 
 ## Not on this roadmap
 
