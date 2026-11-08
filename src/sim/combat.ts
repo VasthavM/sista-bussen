@@ -1,5 +1,6 @@
 import { ENEMIES, WEAPONS } from './content';
-import { nextFloat } from './rng';
+import { FUEL_DROP_VALUE, addFuel, dropMaterials, rollFuelDrop } from './objective';
+import { nextFloat, type Rng } from './rng';
 import { WORLD, addXp, pushEvent } from './state';
 import type {
   AreaEffect,
@@ -117,7 +118,14 @@ function acquireArea(state: SimState): AreaEffect {
   return a;
 }
 
-export function spawnOrb(state: SimState, x: number, y: number, value: number, kind: 'xp' | 'change'): Orb {
+export function spawnOrb(
+  state: SimState,
+  x: number,
+  y: number,
+  value: number,
+  kind: Orb['kind'],
+  rng: Rng = state.rng,
+): Orb {
   let orb: Orb | null = null;
   for (let i = 0; i < state.orbs.length; i++) {
     if (!state.orbs[i].active) {
@@ -136,8 +144,8 @@ export function spawnOrb(state: SimState, x: number, y: number, value: number, k
   orb.active = true;
   orb.x = x;
   orb.y = y;
-  orb.vx = (nextFloat(state.rng) - 0.5) * 90;
-  orb.vy = (nextFloat(state.rng) - 0.5) * 90;
+  orb.vx = (nextFloat(rng) - 0.5) * 90;
+  orb.vy = (nextFloat(rng) - 0.5) * 90;
   orb.value = value;
   orb.magnet = 0;
   orb.life = 0;
@@ -155,6 +163,8 @@ function killEnemy(state: SimState, enemy: Enemy): void {
   state.killsByType[enemy.type] = (state.killsByType[enemy.type] ?? 0) + 1;
   state.change += def.change * (enemy.elite ? 2.5 : 1) * state.player.luck;
   spawnOrb(state, enemy.x, enemy.y, Math.round(def.xp * (enemy.elite ? 2.2 : 1)), 'xp');
+  dropMaterials(state, enemy);
+  if (rollFuelDrop(state)) spawnOrb(state, enemy.x, enemy.y, FUEL_DROP_VALUE, 'fuel', state.dropRng);
   pushEvent(state, 'kill', enemy.x, enemy.y, def.xp, enemy.type);
   addShake(state, enemy.type === 'nattvakt' || enemy.type === 'chauffor' ? 14 : enemy.elite ? 7 : 4);
 }
@@ -552,7 +562,9 @@ export function updateOrbs(state: SimState, dt: number): void {
     orb.y += orb.vy * dt;
 
     if (dist < 22) {
-      if (orb.kind === 'xp') {
+      if (orb.kind === 'fuel') {
+        addFuel(state, orb.value);
+      } else if (orb.kind === 'xp') {
         const levels = addXp(state, orb.value);
         if (levels > 0) {
           pushEvent(state, 'levelup', px, py, state.level, 'LEVEL');
@@ -607,6 +619,6 @@ export function baseAngleTowardPlayer(state: SimState, x: number, y: number): nu
   return Math.atan2(state.player.y - y, state.player.x - x);
 }
 
-export function pickOrbTone(kind: 'xp' | 'change'): string {
+export function pickOrbTone(kind: Orb['kind']): string {
   return kind === 'change' ? 'change' : 'xp';
 }

@@ -6,7 +6,8 @@
 
 import type { AudioEngine } from '../audio';
 import { AD_PLACEMENTS } from '../monetize/catalog';
-import { clockLabel, RUN_DURATION } from '../sim/curve';
+import { clockLabel } from '../sim/curve';
+import type { Materials } from '../sim/map';
 import { bar, button, clockText, el, fmt, stat } from './kit';
 import type { OverlayHandle, OverlayHost } from './overlay';
 
@@ -16,6 +17,10 @@ export interface SummaryData {
   survived: number;
   kills: number;
   level: number;
+  /** Fuel collected and the quota it was measured against. */
+  fuel: number;
+  fuelQuota: number;
+  materials: Materials;
   change: number;
   tickets: number;
   nightBonus: number;
@@ -54,12 +59,12 @@ export function mountSummary(deps: SummaryDeps, initial: SummaryData): SummaryVi
     while (root.firstChild) root.removeChild(root.firstChild);
 
     const banner = el('div', `summary__banner summary__banner--${data.won ? 'win' : 'loss'}`);
-    banner.appendChild(el('div', 'summary__tag', data.won ? 'BUSSEN KOM' : 'BUSSEN GICK UTAN DIG'));
+    banner.appendChild(el('div', 'summary__tag', data.won ? 'ALLA OMBORD' : 'BUSSEN GICK UTAN DIG'));
     banner.appendChild(
-      el('h2', 'summary__title', data.won ? '03:00' : `SISTA CHANSEN ${clockLabel(data.survived)}`),
+      el('h2', 'summary__title', data.won ? clockText(data.survived) : `SISTA CHANSEN ${clockLabel(data.survived)}`),
     );
     banner.appendChild(
-      el('p', 'summary__sub', data.won ? `Natt ${data.night} klar.` : `Du höll ut ${clockText(data.survived)} av natten.`),
+      el('p', 'summary__sub', data.won ? `Natt ${data.night} klar.` : `Du höll ut ${clockText(data.survived)}.`),
     );
     root.appendChild(banner);
 
@@ -70,9 +75,19 @@ export function mountSummary(deps: SummaryDeps, initial: SummaryData): SummaryVi
     stats.appendChild(stat('Fiender', fmt(data.kills)));
     root.appendChild(stats);
 
-    const progress = bar('bar--night', Math.min(1, data.survived / RUN_DURATION), clockLabel(data.survived));
+    const progress = bar(
+      'bar--night',
+      Math.min(1, data.fuel / Math.max(1, data.fuelQuota)),
+      `BRÄNSLE ${fmt(data.fuel)} / ${fmt(data.fuelQuota)}`,
+    );
     progress.classList.add('summary__progress');
     root.appendChild(progress);
+
+    const loot = el('div', 'summary__stats summary__materials');
+    loot.appendChild(stat('Skrot', fmt(data.materials.scrap)));
+    loot.appendChild(stat('Delar', fmt(data.materials.parts)));
+    loot.appendChild(stat('Förråd', fmt(data.materials.supplies)));
+    root.appendChild(loot);
 
     const payout = el('div', 'summary__payout');
     payout.appendChild(el('div', 'summary__payout-label', data.doubleFares ? 'VÄXEL · DUBBLAD' : 'VÄXEL'));

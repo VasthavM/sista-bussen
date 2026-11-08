@@ -6,4 +6,5 @@ export * from './state';
 export * from './upgrades';
 export * from './spawn';
 export * from './combat';
-export * from './step';
+export * from './step';export * from './map';
+export * from './objective';

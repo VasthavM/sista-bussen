@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { WEAPON_ORDER } from '../src/sim/content';
-import { RUN_DURATION } from '../src/sim/curve';
+import { fuelQuotaFor } from '../src/sim/objective';
 import { createRun } from '../src/sim/state';
 import { stepRun } from '../src/sim/step';
 import { applyChoice, rollChoices } from '../src/sim/upgrades';
-import { EMPTY_MODS } from '../src/sim/types';
-import { kiteInput, makePolicy, runConfigSync, simulateNight, type BalanceConfig } from '../tools/balance-lib';
+import { botInput, makePolicy, runConfigSync, simulateMap, type BalanceConfig } from '../tools/balance-lib';
+import { runConfig } from './helpers';
 
 const CFG: BalanceConfig = {
-  night: 2,
+  depth: 2,
   character: 'nattvandraren',
   weapon: 'korv',
   policy: 'rush',
@@ -25,13 +25,16 @@ describe('balance harness', () => {
 
     expect(a.runs).toBe(5);
     expect(a.config.policy).toBe('rush:korv');
-    expect(a.winRate).toBeGreaterThanOrEqual(0);
-    expect(a.winRate).toBeLessThanOrEqual(1);
+    expect(a.extractRate).toBeGreaterThanOrEqual(0);
+    expect(a.extractRate).toBeLessThanOrEqual(1);
+    expect(a.quotaRate).toBeGreaterThanOrEqual(a.extractRate);
+    expect(a.config.quota).toBe(fuelQuotaFor(2));
     expect(a.endTime.p10).toBeLessThanOrEqual(a.endTime.median);
     expect(a.endTime.median).toBeLessThanOrEqual(a.endTime.p90);
-    expect(a.endTime.p90).toBeLessThanOrEqual(RUN_DURATION);
     expect(a.peakEnemies.max).toBeLessThanOrEqual(180);
-    expect(a.levelAt0300).toHaveProperty('median');
+    expect(a.timeToQuota).toHaveProperty('median');
+    expect(a.timeToExtract).toHaveProperty('median');
+    expect(a.levelAtExtract).toHaveProperty('median');
     expect(Object.keys(a.weapons).sort()).toEqual([...WEAPON_ORDER].sort());
     let share = 0;
     for (const w of Object.values(a.weapons)) {
@@ -41,22 +44,22 @@ describe('balance harness', () => {
     expect(share).toBeCloseTo(1, 2);
   });
 
-  it('different seeds differ, different nights differ', () => {
-    const base = simulateNight(CFG, 1);
-    expect(simulateNight(CFG, 1)).toEqual(base);
-    expect(simulateNight(CFG, 2)).not.toEqual(base);
-    expect(simulateNight({ ...CFG, night: 5 }, 1)).not.toEqual(base);
+  it('different seeds differ, different depths differ', () => {
+    const base = simulateMap(CFG, 1);
+    expect(simulateMap(CFG, 1)).toEqual(base);
+    expect(simulateMap(CFG, 2)).not.toEqual(base);
+    expect(simulateMap({ ...CFG, depth: 5 }, 1)).not.toEqual(base);
   });
 
   it('damage attribution does not perturb the sim and never books damage to a weapon the run did not own', () => {
     for (const seed of [3, 4, 5]) {
-      const r = simulateNight({ ...CFG, policy: 'greedy' }, seed);
+      const r = simulateMap({ ...CFG, policy: 'greedy' }, seed);
 
-      // Same night, plain loop with no instrumentation.
-      const state = createRun({ seed, night: CFG.night, character: CFG.character, weapon: CFG.weapon, mods: { ...EMPTY_MODS } });
+      // Same map, plain loop with no instrumentation.
+      const state = createRun({ ...runConfig(seed, CFG.depth), weapon: CFG.weapon });
       const policy = makePolicy('greedy', CFG.weapon, seed);
-      while (state.status === 'running') {
-        stepRun(state, 1 / 60, kiteInput(state));
+      while (state.status === 'running' && state.time < 900) {
+        stepRun(state, 1 / 60, botInput(state));
         while (state.pendingLevelUps > 0) applyChoice(state, policy(state, rollChoices(state, 3)));
       }
       expect(r.kills).toBe(state.kills);

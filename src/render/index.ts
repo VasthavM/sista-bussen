@@ -18,6 +18,7 @@ import { PostFx, drawHurtVeil, drawPauseVeil, resetPost } from './post';
 import { drawGlow, glowSprite } from './sprites';
 import { drawStick } from './stick';
 import { clamp, rgba } from './util';
+import { drawGoalArrow, drawObjective } from './objective';
 import { EffectTrails, WeaponFx, drawAreaEffects, drawEnemyShots, drawOrbs, drawProjectiles, drawWeaponSystems } from './weapons';
 
 export interface StickVisual {
@@ -235,6 +236,7 @@ class RendererImpl implements Renderer {
     this.post.draw(d);
     drawHurtVeil(d);
     drawStick(d);
+    drawGoalArrow(d);
     if (this.fx.boss > 0.01) this.drawBossPulse(d);
     if (state.status !== 'running' && !view.dimmed) this.drawStatusBand(d);
     if (this.fx.evolve > 0.01) this.drawEvolutionBanner(d);
@@ -261,6 +263,7 @@ class RendererImpl implements Renderer {
     drawShadows(d);
     this.particles.draw(d, 0);
     drawAreaEffects(d);
+    drawObjective(d);
     drawOrbs(d);
     drawEnemies(d);
     drawPlayer(d);
@@ -451,6 +454,15 @@ class RendererImpl implements Renderer {
         }
         break;
       }
+      case 'horn': {
+        this.fx.flash = Math.max(this.fx.flash, 0.25);
+        this.fx.flashColour = PAL.green;
+        if (this.spawnAllowed(20)) {
+          this.particles.ring(e.x, e.y, 60, PAL.green, 1.2, 1);
+          this.particles.ring(e.x, e.y, 160, PAL.green, 1.6, 0.5);
+        }
+        break;
+      }
       case 'revive': {
         this.fx.flash = Math.max(this.fx.flash, 0.5);
         this.fx.flashColour = PAL.green;
@@ -536,7 +548,7 @@ class RendererImpl implements Renderer {
     const st = d.state;
     const ctx = d.ctx;
     const vp = d.vp;
-    const won = st.status === 'won';
+    const won = st.status === 'extracted';
     const y = vp.y + vp.h * 0.42;
     ctx.save();
     ctx.textAlign = 'center';
@@ -544,7 +556,7 @@ class RendererImpl implements Renderer {
     const size = Math.round(clamp(vp.w * 0.085, 20, 40));
     ctx.font = `700 ${size}px ui-monospace, SFMono-Regular, Menlo, monospace`;
     ctx.fillStyle = won ? rgba(PAL.green, 0.95) : rgba(PAL.danger, 0.95);
-    ctx.fillText(won ? 'BUSSEN GÅR' : 'DU MISSADE BUSSEN', vp.x + vp.w / 2, y);
+    ctx.fillText(won ? 'ALLA OMBORD' : 'DU MISSADE BUSSEN', vp.x + vp.w / 2, y);
     ctx.restore();
   }
 

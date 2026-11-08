@@ -9,7 +9,7 @@ import {
   updateOrbs,
   updateProjectiles,
 } from './combat';
-import { RUN_DURATION } from './curve';
+import { updateObjective } from './objective';
 import { WORLD, PLAYER_RADIUS, pushEvent } from './state';
 import type { Enemy, SimState } from './types';
 
@@ -267,11 +267,7 @@ export function stepRun(state: SimState, dt: number, input: MoveInput): void {
   updateProjectiles(state, step);
   updateAreaEffects(state, step);
   updateOrbs(state, step);
+  // Dying this step beats extracting this step.
+  if (state.status === 'running' && updateObjective(state)) addShake(state, 8);
   cleanup(state);
-
-  if (state.status === 'running' && state.time >= RUN_DURATION) {
-    state.status = 'won';
-    pushEvent(state, 'win', state.player.x, state.player.y, 0, '03:00');
-    addShake(state, 8);
-  }
 }

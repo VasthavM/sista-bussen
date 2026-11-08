@@ -1,3 +1,4 @@
+import type { MapConfig, Materials } from './map';
 import type { Rng } from './rng';
 
 export type WeaponId = 'nyckel' | 'korv' | 'telefon' | 'spray' | 'vagn' | 'ficklampa';
@@ -12,7 +13,7 @@ export type PassiveId =
   | 'termos';
 export type EnemyType = 'fyllo' | 'duva' | 'skugga' | 'vaktmastare' | 'sparkcykel' | 'nattvakt' | 'chauffor';
 export type CharacterId = 'nattvandraren' | 'pensionaren' | 'studenten';
-export type RunStatus = 'running' | 'dead' | 'won';
+export type RunStatus = 'running' | 'dead' | 'extracted';
 export type UpgradeKind = 'weapon' | 'passive' | 'evolution';
 
 export interface MetaMods {
@@ -38,11 +39,11 @@ export const EMPTY_MODS: MetaMods = {
 };
 
 export interface RunConfig {
-  seed: number;
-  night: number;
   character: CharacterId;
   weapon: WeaponId;
   mods: MetaMods;
+  /** The map to play: seed, depth (difficulty), stop, fuel quota and multipliers. */
+  map: MapConfig;
 }
 
 export interface PlayerState {
@@ -152,7 +153,7 @@ export interface Orb {
   value: number;
   magnet: number;
   life: number;
-  kind: 'xp' | 'change';
+  kind: 'xp' | 'change' | 'fuel';
 }
 
 export type SimEventType =
@@ -168,6 +169,7 @@ export type SimEventType =
   | 'shoot'
   | 'boss'
   | 'win'
+  | 'horn'
   | 'revive';
 
 export interface SimEvent {
@@ -190,8 +192,29 @@ export interface SpawnState {
   chaufforSpawned: boolean;
 }
 
+/** A fuel canister lying on the map. Static; collected inside the player's pickup radius. */
+export interface Canister {
+  active: boolean;
+  /** Sim second at which the canister appears (supply drops are released over time). */
+  at: number;
+  x: number;
+  y: number;
+  fuel: number;
+}
+
+/** The extraction bus: fixed for the whole map. Touching it after the quota ends the map. */
+export interface Bus {
+  x: number;
+  y: number;
+}
+
+/** Mutable counterpart of `Materials` for run state; floored into a `MapResult`. */
+export type MaterialTally = { -readonly [K in keyof Materials]: number };
+
 export interface SimState {
   rng: Rng;
+  /** Separate stream for fuel and material rolls, so drops never perturb combat rolls. */
+  dropRng: Rng;
   config: RunConfig;
   time: number;
   status: RunStatus;
@@ -214,6 +237,11 @@ export interface SimState {
   kills: number;
   killsByType: Record<string, number>;
   change: number;
+  fuel: number;
+  quotaMet: boolean;
+  materials: MaterialTally;
+  canisters: Canister[];
+  bus: Bus;
   damageDealt: number;
   nextUid: number;
   shake: number;
@@ -232,6 +260,7 @@ export interface UpgradeChoice {
   rarity: 'evolution' | 'new' | 'weapon' | 'passive';
 }
 
+/** Legacy run summary consumed by src/meta. `won` = extracted, `night` = map depth. */
 export interface RunResult {
   won: boolean;
   night: number;

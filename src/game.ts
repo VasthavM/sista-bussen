@@ -14,13 +14,15 @@ import { adsOfferable, shouldShowInterstitial } from './monetize/ads';
 import { AD_PLACEMENTS } from './monetize/catalog';
 import { CHARACTERS, ENEMIES, WEAPONS } from './sim/content';
 import { RUN_DURATION } from './sim/curve';
-import { spawnAtRing, spawnEnemy } from './sim/spawn';
-import { addXp, clearEvents, computeRunResult, createRun, revivePlayer } from './sim/state';
+import { defaultMapConfig } from './sim/objective';
+import { spawnAtRing } from './sim/spawn';
+import { addXp, clearEvents, computeMapResult, computeRunResult, createRun, revivePlayer } from './sim/state';
 import { NO_INPUT, stepRun, type MoveInput } from './sim/step';
 import type {
   CharacterId,
   EnemyType,
   RunConfig,
+  RunStatus,
   SimEvent,
   SimState,
   UpgradeChoice,
@@ -72,8 +74,12 @@ export interface DebugState {
   enemies: number;
   weapons: Array<{ id: WeaponId; level: number; evolved: boolean }>;
   kills: number;
-  status: 'running' | 'dead' | 'won';
+  status: RunStatus;
   change: number;
+  fuel: number;
+  fuelQuota: number;
+  quotaMet: boolean;
+  materials: { scrap: number; parts: number; supplies: number };
   revivesUsed: number;
 }
 
@@ -134,11 +140,10 @@ export class Game {
 
     const seed = (Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0;
     const config: RunConfig = {
-      seed,
-      night,
       character,
       weapon,
       mods: modsFromProfile(profile),
+      map: defaultMapConfig(seed, night),
     };
     this.state = createRun(config);
     this.hud = mountHud({
@@ -188,13 +193,17 @@ export class Game {
         kills: 0,
         status: 'running',
         change: 0,
+        fuel: 0,
+        fuelQuota: 0,
+        quotaMet: false,
+        materials: { scrap: 0, parts: 0, supplies: 0 },
         revivesUsed: 0,
       };
     }
     return {
       elapsed: s.time,
       phase: this.phase,
-      night: s.config.night,
+      night: s.config.map.depth,
       hp: Math.max(0, Math.round(s.player.hp)),
       maxHp: Math.round(s.player.maxHp),
       level: s.level,
@@ -204,6 +213,14 @@ export class Game {
       kills: s.kills,
       status: s.status,
       change: Math.floor(s.change),
+      fuel: Math.floor(s.fuel),
+      fuelQuota: s.config.map.fuelQuota,
+      quotaMet: s.quotaMet,
+      materials: {
+        scrap: Math.floor(s.materials.scrap),
+        parts: Math.floor(s.materials.parts),
+        supplies: Math.floor(s.materials.supplies),
+      },
       revivesUsed: s.revivesUsed,
     };
   }
@@ -226,6 +243,15 @@ export class Game {
     s.status = 'dead';
     this.accumulator = 0;
     this.hitstop = 0;
+  }
+
+  /** Debug/e2e: meet the fuel quota and stand on the bus; the next step extracts via the real path. */
+  completeObjective(): void {
+    const s = this.state;
+    if (!s || s.status !== 'running') return;
+    s.fuel = Math.max(s.fuel, s.config.map.fuelQuota);
+    s.player.x = s.bus.x;
+    s.player.y = s.bus.y;
   }
 
   /** Debug/e2e: set current HP without touching max HP. */
@@ -276,7 +302,7 @@ export class Game {
       return;
     }
     if (phase === 'summary') {
-      this.openSummary(this.state.status === 'won');
+      this.openSummary(this.state.status === 'extracted');
       return;
     }
     if (phase === 'pause') {
@@ -437,14 +463,18 @@ export class Game {
           this.hud?.announce(event.text || 'UTVECKLING', 'good');
           break;
         case 'pickup':
-          this.deps.audio.play(event.text === 'change' ? 'pickup_change' : 'pickup_xp');
+          this.deps.audio.play(event.text === 'xp' ? 'pickup_xp' : 'pickup_change');
           break;
         case 'boss':
           this.hud?.announce(event.text || 'BOSS', 'boss');
           break;
+        case 'horn':
+          this.deps.audio.play('horn');
+          this.hud?.announce('BUSSEN VÄNTAR', 'good');
+          break;
         case 'win':
           this.deps.audio.play('win');
-          this.hud?.announce('BUSSEN ÄR HÄR', 'good');
+          this.hud?.announce('ALLA OMBORD', 'good');
           break;
         case 'revive':
           this.deps.audio.play('ad_reward');
@@ -470,8 +500,8 @@ export class Game {
   private checkTransitions(): void {
     const state = this.state;
     if (!state) return;
-    if (state.status === 'dead' || state.status === 'won') {
-      if (!this.summaryView) this.openSummary(state.status === 'won');
+    if (state.status === 'dead' || state.status === 'extracted') {
+      if (!this.summaryView) this.openSummary(state.status === 'extracted');
       return;
     }
     if (state.pendingLevelUps > 0 && !this.levelHandle) this.openLevelUp();
@@ -510,7 +540,7 @@ export class Game {
     applyChoiceById(state, id, choices);
     if (choice) {
       if (choice.kind === 'evolution' && choice.weaponId) {
-        track('evolution', { weapon: choice.weaponId, level: state.level, night: state.config.night });
+        track('evolution', { weapon: choice.weaponId, level: state.level, night: state.config.map.depth });
         this.hud?.announce(`${WEAPONS[choice.weaponId].evolvedName}`, 'good');
       }
       track('level_up', {
@@ -556,10 +586,10 @@ export class Game {
   private summaryData(): SummaryData {
     const state = this.state!;
     const profile = this.deps.profile;
-    const won = state.status === 'won';
+    const won = state.status === 'extracted';
     const payout = computePayout({
       change: state.change,
-      night: state.config.night,
+      night: state.config.map.depth,
       won,
       doubleFares: this.doubleFares,
       vip: vipActive(profile),
@@ -567,10 +597,13 @@ export class Game {
     });
     return {
       won,
-      night: state.config.night,
+      night: state.config.map.depth,
       survived: state.time,
       kills: state.kills,
       level: state.level,
+      fuel: Math.floor(state.fuel),
+      fuelQuota: state.config.map.fuelQuota,
+      materials: computeMapResult(state).materials,
       change: payout.change,
       tickets: payout.tickets,
       nightBonus: payout.nightBonus,
@@ -596,7 +629,7 @@ export class Game {
     if (adsOfferable(this.deps.profile) && !won && this.reviveOfferedAt !== state.revivesUsed) {
       this.reviveOfferedAt = state.revivesUsed;
       track('revive_offered', {
-        night: state.config.night,
+        night: state.config.map.depth,
         time: state.time,
         remaining: Math.max(0, AD_PLACEMENTS.revive.cap - state.revivesUsed),
       });
@@ -634,7 +667,7 @@ export class Game {
     if (!outcome.completed) return;
     if (!revivePlayer(state)) return;
 
-    track('revive_taken', { night: state.config.night, time: state.time, remaining });
+    track('revive_taken', { night: state.config.map.depth, time: state.time, remaining });
     this.deps.audio.play('ad_reward');
     this.closeSummary();
     this.accumulator = 0;
@@ -655,7 +688,7 @@ export class Game {
   }
 
   private retry(): void {
-    const won = this.state?.status === 'won';
+    const won = this.state?.status === 'extracted';
     const previous = this.selection;
     this.finalizeRun();
     this.closeSummary();
@@ -678,7 +711,7 @@ export class Game {
     const state = this.state;
     if (!state) return this.lastPayout;
     if (this.finalized) return this.lastPayout;
-    const won = state.status === 'won';
+    const won = state.status === 'extracted';
     const result = computeRunResult(state);
     const payout = computePayout({
       change: result.change,

@@ -182,7 +182,7 @@ export class SoundBank {
       // Never let a synthesis hiccup break the loop.
     }
     // Decay the counter on a timer that is cheap and bounded.
-    const hold = id === 'evolution' ? 900 : id === 'levelup' || id === 'win' ? 600 : 220;
+    const hold = id === 'evolution' ? 900 : id === 'levelup' || id === 'win' || id === 'horn' ? 900 : 220;
     setTimeout(() => {
       this.voices = Math.max(0, this.voices - 1);
     }, hold);
@@ -258,6 +258,14 @@ export class SoundBank {
         this.tone('sine', 55, t + 0.12, 0.01, 0.06, 0.5, 0.24, 110);
         this.tone('triangle', 220, t + 0.05, 0.08, 0.16, 0.5, 0.1, 440);
         this.tone('triangle', 330, t + 0.16, 0.06, 0.14, 0.5, 0.07, 660);
+        break;
+      }
+      case 'horn': {
+        // Two blasts of a bus horn: the quota is met, the bus is waiting.
+        for (let i = 0; i < 2; i++) {
+          this.tone('sawtooth', 233, t + i * 0.42, 0.01, 0.2, 0.2, 0.14);
+          this.tone('sawtooth', 294, t + i * 0.42, 0.01, 0.2, 0.2, 0.1);
+        }
         break;
       }
       case 'win': {

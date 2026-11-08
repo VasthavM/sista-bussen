@@ -4,7 +4,7 @@ import {
   BOSS_NATTVAKT_AT,
   MAX_ENEMIES,
   RUN_DURATION,
-  nightDifficulty,
+  depthDifficulty,
   spawnRateAt,
 } from './curve';
 import { nextFloat, nextRange, pickWeighted } from './rng';
@@ -47,7 +47,7 @@ function edgePoint(state: SimState, angle: number, margin: number): { x: number;
 
 export function enemyHpScale(state: SimState): number {
   const timeScale = 1 + (state.time / RUN_DURATION) * 0.25;
-  return nightDifficulty(state.config.night) * timeScale;
+  return depthDifficulty(state.config.map.depth) * timeScale;
 }
 
 export function spawnEnemy(
@@ -71,9 +71,9 @@ export function spawnEnemy(
     vy: 0,
     hp: Math.round(def.hp * hpScale),
     maxHp: Math.round(def.hp * hpScale),
-    speed: def.speed * (1 + (state.config.night - 1) * 0.02) * (elite ? 0.94 : 1),
+    speed: def.speed * (1 + (state.config.map.depth - 1) * 0.02) * (elite ? 0.94 : 1),
     radius: def.radius * (elite ? 1.35 : 1),
-    damage: Math.round(def.damage * (1 + (state.config.night - 1) * 0.08)),
+    damage: Math.round(def.damage * (1 + (state.config.map.depth - 1) * 0.08)),
     attackCd: 0,
     flash: 0,
     stun: 0,
@@ -187,7 +187,7 @@ function typeWeightsFor(t: number) {
 /** Spawn director tick. Called once per fixed sim step. */
 export function directorStep(state: SimState, dt: number): void {
   state.spawn.elapsed += dt;
-  const rate = spawnRateAt(state.time, state.config.night);
+  const rate = spawnRateAt(state.time, state.config.map.depth, state.config.map.densityMultiplier);
   state.spawn.timer += rate * dt;
 
   while (state.spawn.timer >= 1) {
@@ -203,11 +203,13 @@ export function directorStep(state: SimState, dt: number): void {
     state.spawn.burstIndex++;
   }
 
-  if (!state.spawn.nattvaktSpawned && state.time >= BOSS_NATTVAKT_AT) {
+  // Fixed-time bosses belong to boss stops only; on every other stop the pressure is the clock.
+  const bossStop = state.config.map.stop === 'boss';
+  if (bossStop && !state.spawn.nattvaktSpawned && state.time >= BOSS_NATTVAKT_AT) {
     state.spawn.nattvaktSpawned = true;
     spawnBoss(state, 'nattvakt');
   }
-  if (!state.spawn.chaufforSpawned && state.time >= BOSS_CHAUFFOR_AT) {
+  if (bossStop && !state.spawn.chaufforSpawned && state.time >= BOSS_CHAUFFOR_AT) {
     state.spawn.chaufforSpawned = true;
     spawnBoss(state, 'chauffor');
   }
