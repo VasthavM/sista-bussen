@@ -312,7 +312,7 @@ function closeBootScreen(): void {
   window.setTimeout(() => boot.remove(), 240);
 }
 
-if ('serviceWorker' in navigator && !import.meta.env.DEV) {
+if (navigator.serviceWorker && !import.meta.env.DEV) {
   window.addEventListener('load', () => {
     void updates.start();
   });

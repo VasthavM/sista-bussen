@@ -44,12 +44,14 @@ export class UpdateCoordinator {
 
   /** Wire page-side SW listeners; call once at boot, before registration. */
   attach(): void {
+    // Capacitor's iOS WebView has no serviceWorker API: no worker, no banner, version line only.
+    if (!navigator.serviceWorker) return;
     navigator.serviceWorker.addEventListener('message', this.onMessage);
     navigator.serviceWorker.addEventListener('controllerchange', this.onControllerChange);
   }
 
   async start(): Promise<void> {
-    if (!('serviceWorker' in navigator)) return;
+    if (!navigator.serviceWorker) return;
     try {
       const registration = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
       this.watch(registration);
@@ -134,7 +136,7 @@ export class UpdateCoordinator {
   };
 
   private askBuild(): void {
-    navigator.serviceWorker.controller?.postMessage({ type: 'QUERY_BUILD' });
+    navigator.serviceWorker?.controller?.postMessage({ type: 'QUERY_BUILD' });
   }
 
   private watch(registration: ServiceWorkerRegistration): void {

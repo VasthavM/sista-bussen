@@ -165,6 +165,28 @@ test.describe('update flow', () => {
   });
 });
 
+test.describe('no service worker API (Capacitor iOS WebView)', () => {
+  test('boots to the menu with the version visible and no update UI', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    // Same shape as the WebView: the property is simply not there.
+    await page.addInitScript(() => {
+      delete (Navigator.prototype as unknown as Record<string, unknown>).serviceWorker;
+    });
+
+    await page.goto('/');
+    expect(await page.evaluate(() => navigator.serviceWorker)).toBeUndefined();
+    await expect(page.locator('[data-screen="menu"]')).toBeVisible();
+    await expect(page.locator('#boot')).toHaveCount(0);
+    await dismissIntro(page);
+
+    expect(await settingsVersion(page)).toMatch(VERSION_LINE);
+    await page.waitForTimeout(500); // give a (wrongly) wired banner time to show
+    await expect(page.locator('.update-banner')).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
+});
+
 test.describe('offline and broken caches', () => {
   test('cold start works offline after one visit', async ({ page, context }) => {
     await bootControlled(page);
