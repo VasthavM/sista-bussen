@@ -18,6 +18,8 @@ import { button, el, remove } from './ui/kit';
 import { versionLine } from './version';
 
 const RELOAD_FALLBACK_MS = 5_000;
+/** Foreground update checks happen at most this often (iOS keeps installed PWAs alive for days). */
+export const FOREGROUND_CHECK_INTERVAL_MS = 30 * 60 * 1000;
 
 export class UpdateCoordinator {
   /** The build the controlling worker reports; null until it answers. */
@@ -34,12 +36,19 @@ export class UpdateCoordinator {
   private reloaded = false;
   private fallbackTimer = 0;
 
+  private registration: ServiceWorkerRegistration | null = null;
+  private lastCheck = 0;
+
   private readonly listeners = new Set<(line: string) => void>();
 
-  /** `atMenu` tells whether the game is on the menu right now (reload is safe). */
+  /**
+   * `atMenu` tells whether the game is on the menu right now (reload is safe);
+   * `inRun` whether a run is in active play (no update check then).
+   */
   constructor(
     private readonly appRoot: HTMLElement,
     private readonly atMenu: () => boolean,
+    private readonly inRun: () => boolean = () => false,
   ) {}
 
   /** Wire page-side SW listeners; call once at boot, before registration. */
@@ -48,12 +57,15 @@ export class UpdateCoordinator {
     if (!navigator.serviceWorker) return;
     navigator.serviceWorker.addEventListener('message', this.onMessage);
     navigator.serviceWorker.addEventListener('controllerchange', this.onControllerChange);
+    document.addEventListener('visibilitychange', this.onVisibility);
   }
 
   async start(): Promise<void> {
     if (!navigator.serviceWorker) return;
     try {
       const registration = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
+      this.registration = registration;
+      this.lastCheck = Date.now(); // registering just checked for a newer worker
       this.watch(registration);
       if (!navigator.serviceWorker.controller && registration.active) {
         // First visit: the page loaded before any worker could claim it. Only pages
@@ -127,6 +139,21 @@ export class UpdateCoordinator {
       this.controllerBuild = data.build.trim() || null;
       this.emit();
     }
+  };
+
+  /**
+   * Back in the foreground: look for a newer worker. A hit follows the normal rules
+   * (banner, applied only at a break). Skipped during active play without using up the
+   * throttle window, so the next foreground still checks.
+   */
+  private onVisibility = (): void => {
+    if (document.visibilityState !== 'visible' || !this.registration || this.inRun()) return;
+    const now = Date.now();
+    if (now - this.lastCheck < FOREGROUND_CHECK_INTERVAL_MS) return;
+    this.lastCheck = now;
+    this.registration.update().catch(() => {
+      /* offline or script fetch failed: try again at a later foreground */
+    });
   };
 
   private onControllerChange = (): void => {

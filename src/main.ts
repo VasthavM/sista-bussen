@@ -93,7 +93,11 @@ audio.setMuted(profile.settings.muted);
 
 // ---- controlled updates (SW waiting / version line) ----
 
-const updates = new UpdateCoordinator(app, () => game.getState().phase === 'menu');
+const updates = new UpdateCoordinator(
+  app,
+  () => game.getState().phase === 'menu',
+  () => game.getState().phase === 'run',
+);
 updates.attach();
 
 const renderer = createRenderer(canvas);
