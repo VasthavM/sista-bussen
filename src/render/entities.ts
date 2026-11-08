@@ -292,37 +292,39 @@ function drawDuva(ctx: CanvasRenderingContext2D, e: Enemy, d: Draw, flash: boole
   const flap = Math.sin(d.t * 17 + e.phase);
   const up = 1 + flap * 0.22;
 
-  // Notched fan tail.
+  // At an 18px world footprint only one wing can be drawn without the bird
+  // turning into a fan of spikes. A short single-point tail plus one raised
+  // wing and one dark tucked wing gives an asymmetric read: bird, not debris.
   ctx.beginPath();
-  ctx.moveTo(-0.36 * r, -0.2 * r);
-  ctx.lineTo(-0.86 * r, -0.46 * r);
-  ctx.lineTo(-0.74 * r, -0.14 * r);
-  ctx.lineTo(-0.9 * r, 0);
-  ctx.lineTo(-0.74 * r, 0.14 * r);
-  ctx.lineTo(-0.86 * r, 0.46 * r);
-  ctx.lineTo(-0.36 * r, 0.2 * r);
+  ctx.moveTo(-0.4 * r, -0.18 * r);
+  ctx.lineTo(-0.92 * r, 0);
+  ctx.lineTo(-0.4 * r, 0.18 * r);
   ctx.closePath();
   seal(ctx, p.body, p.outline, 1 * inv);
 
-  // Wings: broad, swept back, pointed.
-  for (let s = -1; s <= 1; s += 2) {
-    ctx.beginPath();
-    ctx.moveTo(0.36 * r, s * 0.1 * r);
-    ctx.lineTo(-0.16 * r, s * 1.0 * r * up);
-    ctx.lineTo(-0.62 * r, s * 0.86 * r * up);
-    ctx.lineTo(-0.3 * r, s * 0.16 * r);
-    ctx.closePath();
-    seal(ctx, p.body, p.outline, 1 * inv);
-    // Dark outer third: kills the flat-delta read.
-    ctx.beginPath();
-    ctx.moveTo(-0.1 * r, s * 0.5 * r * up);
-    ctx.lineTo(-0.16 * r, s * 1.0 * r * up);
-    ctx.lineTo(-0.62 * r, s * 0.86 * r * up);
-    ctx.lineTo(-0.4 * r, s * 0.5 * r * up);
-    ctx.closePath();
-    ctx.fillStyle = p.shade;
-    ctx.fill();
-  }
+  // Far wing, tucked and in shadow: small, behind the body.
+  ctx.beginPath();
+  ctx.moveTo(0.3 * r, 0.08 * r);
+  ctx.lineTo(0.02 * r, 0.62 * r);
+  ctx.lineTo(-0.34 * r, 0.5 * r);
+  ctx.lineTo(-0.14 * r, 0.08 * r);
+  ctx.closePath();
+  seal(ctx, p.shade, p.outline, 0.9 * inv);
+
+  // Near wing, raised: one clean wedge with a lit leading edge.
+  ctx.beginPath();
+  ctx.moveTo(0.3 * r, -0.06 * r);
+  ctx.lineTo(0.08 * r, -1.08 * r * up);
+  ctx.lineTo(-0.56 * r, -0.8 * r * up);
+  ctx.lineTo(-0.2 * r, -0.08 * r);
+  ctx.closePath();
+  seal(ctx, p.body, p.outline, 1 * inv);
+  ctx.beginPath();
+  ctx.moveTo(0.3 * r, -0.06 * r);
+  ctx.lineTo(0.08 * r, -1.08 * r * up);
+  ctx.strokeStyle = p.rim;
+  ctx.lineWidth = 1.1 * inv;
+  ctx.stroke();
 
   // Body, then the head, beak and eye.
   ctx.beginPath();
@@ -443,46 +445,45 @@ function drawVaktmastare(
     ctx.restore();
   }
 
-  // Uniform coat: square, wide, with a hard hem.
+  // Uniform coat: wide at the shoulders, hard hem, neck notch. A narrow slab
+  // with a face inside reads as a badge; the shoulder span makes it a person.
   ctx.beginPath();
-  ctx.moveTo(0.34 * r, -0.56 * r);
-  ctx.lineTo(-0.42 * r, -0.66 * r);
-  ctx.lineTo(-0.46 * r, 0.68 * r);
-  ctx.lineTo(0.32 * r, 0.58 * r);
+  ctx.moveTo(0.3 * r, -0.56 * r);
+  ctx.lineTo(-0.52 * r, -0.7 * r);
+  ctx.lineTo(-0.58 * r, 0.68 * r);
+  ctx.lineTo(0.24 * r, 0.6 * r);
   ctx.closePath();
   seal(ctx, p.shell, p.outline, 1.4 * inv);
 
-  // Shoulder bar and arms.
-  plate(ctx, -0.14 * r, -0.72 * r, 0.42 * r, 1.44 * r, 0.1 * r, p.body, p.outline, 1.2 * inv);
-  const by = winding ? -0.82 * r : 0.6 * r;
-  taper(ctx, 0.1 * r, 0.5 * r, 0.56 * r, by, 0.13 * r, 0.08 * r, p.body, p.outline, 1 * inv);
-  taper(ctx, 0.08 * r, -0.5 * r, 0.42 * r, -0.6 * r, 0.12 * r, 0.07 * r, p.body, p.outline, 1 * inv);
+  // Shoulder bar, then two arms: broom arm forward, other arm at the side.
+  plate(ctx, -0.2 * r, -0.76 * r, 0.5 * r, 1.52 * r, 0.12 * r, p.body, p.outline, 1.1 * inv);
+  const by = winding ? -0.8 * r : 0.44 * r;
+  taper(ctx, 0.14 * r, 0.44 * r, 0.64 * r, by, 0.15 * r, 0.09 * r, p.body, p.outline, 1 * inv);
+  taper(ctx, 0.1 * r, -0.46 * r, 0.42 * r, -0.74 * r, 0.13 * r, 0.08 * r, p.body, p.outline, 1 * inv);
 
-  // Hi-vis bands across the chest: the type signature.
-  plate(ctx, -0.28 * r, -0.36 * r, 0.5 * r, 0.14 * r, 0.03 * r, p.kit, p.outline, 0.7 * inv);
-  plate(ctx, -0.28 * r, 0.22 * r, 0.5 * r, 0.14 * r, 0.03 * r, p.kit, p.outline, 0.7 * inv);
+  // Hi-vis bands across the back: the type signature, read as two bars.
+  plate(ctx, -0.44 * r, -0.34 * r, 0.46 * r, 0.12 * r, 0.03 * r, p.kit, p.outline, 0.6 * inv);
+  plate(ctx, -0.44 * r, 0.2 * r, 0.46 * r, 0.12 * r, 0.03 * r, p.kit, p.outline, 0.6 * inv);
   // Belt.
-  plate(ctx, -0.34 * r, 0.6 * r, 0.62 * r, 0.09 * r, 0.02 * r, p.shade, p.outline, 0);
+  plate(ctx, -0.5 * r, 0.56 * r, 0.66 * r, 0.09 * r, 0.02 * r, p.shade, p.outline, 0);
 
-  // Peaked cap behind the face, visor over it.
-  discSolid(ctx, 0.4 * r, 0, 0.3 * r, p.hatDeep, p.outline, 1.1 * inv);
-  headMass(ctx, 0.58 * r, 0, 0.23 * r, p, p.hatDeep, p.detail, inv);
+  // Peaked cap: crown from headMass, peak projecting past the head.
+  headMass(ctx, 0.8 * r, 0, 0.26 * r, p, p.hatDeep, p.detail, inv);
   ctx.beginPath();
-  ctx.moveTo(0.58 * r, -0.18 * r);
-  ctx.lineTo(0.92 * r, -0.03 * r);
-  ctx.lineTo(0.92 * r, 0.05 * r);
-  ctx.lineTo(0.58 * r, 0.16 * r);
+  ctx.moveTo(0.98 * r, -0.2 * r);
+  ctx.lineTo(1.3 * r, -0.04 * r);
+  ctx.lineTo(1.3 * r, 0.05 * r);
+  ctx.lineTo(0.98 * r, 0.16 * r);
   ctx.closePath();
-  ctx.fillStyle = p.hatDeep;
-  ctx.fill();
+  seal(ctx, p.hatDeep, p.outline, 0.9 * inv);
 
-  // Broom, out front or lifted.
-  taper(ctx, 0.54 * r, by, 1.66 * r, by * 1.1, 0.04 * r, 0.035 * r, PAL.steel, p.outline, 0.5 * inv);
+  // Broom, from the hand out front, or lifted for the throw.
+  taper(ctx, 0.62 * r, by, 1.7 * r, by * 1.08, 0.045 * r, 0.038 * r, PAL.steel, p.outline, 0.5 * inv);
   ctx.beginPath();
-  ctx.moveTo(1.6 * r, by * 1.1 - 0.22 * r);
-  ctx.lineTo(1.94 * r, by * 1.1 - 0.06 * r);
-  ctx.lineTo(1.94 * r, by * 1.1 + 0.2 * r);
-  ctx.lineTo(1.6 * r, by * 1.1 + 0.28 * r);
+  ctx.moveTo(1.64 * r, by * 1.08 - 0.24 * r);
+  ctx.lineTo(2.0 * r, by * 1.08 - 0.06 * r);
+  ctx.lineTo(2.0 * r, by * 1.08 + 0.22 * r);
+  ctx.lineTo(1.64 * r, by * 1.08 + 0.3 * r);
   ctx.closePath();
   seal(ctx, p.kit, p.outline, 0.9 * inv);
 }
@@ -1024,57 +1025,51 @@ function drawPensionaren(
 ): void {
   const inv = d.inv;
 
-  // Overcoat: round, heavy, hem dragged back.
+  // Overcoat: hunched egg, hem dragged back. Deliberately narrower than a disc:
+  // a round mass with a head inside it reads as a coin/medallion, so the coat
+  // stops well short and the head, arms and stick finish the silhouette.
   ctx.beginPath();
-  ctx.ellipse(-0.14 * r, 0, 0.82 * r, 0.8 * r, 0, 0, TAU);
+  ctx.ellipse(-0.24 * r, 0, 0.6 * r, 0.62 * r, 0, 0, TAU);
   seal(ctx, p.shell, p.outline, 1.5 * inv);
-  // Belly panel, lighter: the coat is a body, not a disc.
+  // Back panel, lighter: the coat is a body, not a flat disc.
   ctx.beginPath();
-  ctx.ellipse(0.14 * r, 0, 0.5 * r, 0.56 * r, 0, 0, TAU);
+  ctx.ellipse(-0.3 * r, 0, 0.42 * r, 0.46 * r, 0, 0, TAU);
   ctx.fillStyle = p.body;
   ctx.fill();
-  // Rim on the leading edge of the belly, before the arms.
-  ctx.beginPath();
-  ctx.arc(0.14 * r, 0, 0.52 * r, -1.0, 1.0);
-  ctx.strokeStyle = p.rim;
-  ctx.lineWidth = 1.3 * inv;
-  ctx.stroke();
 
-  // Shoulder bar and short thick arms.
-  plate(ctx, -0.1 * r, -0.52 * r, 0.36 * r, 1.04 * r, 0.1 * r, p.body, p.outline, 1.2 * inv);
-  taper(ctx, 0.12 * r, -0.44 * r, 0.5 * r, -0.56 * r, 0.13 * r, 0.08 * r, p.body, p.outline, 0.9 * inv);
-  taper(ctx, 0.12 * r, 0.44 * r, 0.52 * r, 0.56 * r, 0.13 * r, 0.08 * r, p.body, p.outline, 0.9 * inv);
+  // Shoulder bar and short thick arms reaching past the coat edge.
+  plate(ctx, -0.16 * r, -0.5 * r, 0.34 * r, 1.0 * r, 0.1 * r, p.body, p.outline, 1.1 * inv);
+  taper(ctx, 0.04 * r, -0.42 * r, 0.58 * r, -0.44 * r, 0.14 * r, 0.09 * r, p.body, p.outline, 0.9 * inv);
+  taper(ctx, 0.04 * r, 0.42 * r, 0.66 * r, 0.5 * r, 0.14 * r, 0.09 * r, p.body, p.outline, 0.9 * inv);
 
-  // Scarf: accent band around the neck, the one accent element.
+  // Scarf: accent band at the collar, tucked behind the head.
   ctx.beginPath();
-  ctx.moveTo(0.22 * r, -0.44 * r);
-  ctx.quadraticCurveTo(0.52 * r, 0, 0.22 * r, 0.44 * r);
-  ctx.lineTo(0.06 * r, 0.4 * r);
-  ctx.quadraticCurveTo(0.36 * r, 0, 0.06 * r, -0.4 * r);
+  ctx.moveTo(0.24 * r, -0.32 * r);
+  ctx.quadraticCurveTo(0.46 * r, 0, 0.24 * r, 0.32 * r);
+  ctx.lineTo(0.08 * r, 0.28 * r);
+  ctx.quadraticCurveTo(0.3 * r, 0, 0.08 * r, -0.28 * r);
   ctx.closePath();
   ctx.fillStyle = art.accent;
   ctx.fill();
 
-  // Neck gap, then the head.
-  taper(ctx, 0.2 * r, 0, 0.44 * r, -0.02 * r, 0.14 * r, 0.12 * r, p.outline, p.outline, 0);
-  headMass(ctx, 0.6 * r, -0.02 * r, 0.26 * r, p, p.hat, p.detail, inv);
+  // Neck gap, then the head out past the coat line.
+  taper(ctx, 0.26 * r, 0, 0.48 * r, -0.02 * r, 0.13 * r, 0.12 * r, p.outline, p.outline, 0);
+  headMass(ctx, 0.68 * r, -0.02 * r, 0.27 * r, p, p.hat, p.detail, inv);
 
-  // Flat cap: crown behind, wide brim out front.
+  // Flat cap: the crown is the headMass crown; the peak projects past the head
+  // so it never covers the lit face. A big brim drawn over the face turns the
+  // head into a pale semicircle under a dark beak.
   ctx.beginPath();
-  ctx.arc(0.46 * r, -0.06 * r, 0.34 * r, Math.PI * 0.86, Math.PI * 1.94);
+  ctx.moveTo(0.88 * r, -0.18 * r);
+  ctx.lineTo(1.26 * r, -0.04 * r);
+  ctx.lineTo(1.26 * r, 0.07 * r);
+  ctx.lineTo(0.88 * r, 0.12 * r);
   ctx.closePath();
-  seal(ctx, p.hat, p.outline, 1.1 * inv);
-  ctx.beginPath();
-  ctx.moveTo(0.5 * r, -0.28 * r);
-  ctx.lineTo(0.96 * r, -0.1 * r);
-  ctx.lineTo(0.96 * r, 0.04 * r);
-  ctx.lineTo(0.5 * r, 0.04 * r);
-  ctx.closePath();
-  seal(ctx, p.hatDeep, p.outline, 1 * inv);
+  seal(ctx, p.hatDeep, p.outline, 0.9 * inv);
 
-  // Walking stick planted forward.
-  taper(ctx, 0.44 * r, 0.54 * r, 1.2 * r, 0.86 * r, 0.05 * r, 0.045 * r, p.kit, p.outline, 0.5 * inv);
-  taper(ctx, 1.2 * r, 0.86 * r, 1.1 * r, 0.68 * r, 0.045 * r, 0.04 * r, p.kit, p.outline, 0.4 * inv);
+  // Walking stick planted forward, from the front hand.
+  taper(ctx, 0.6 * r, 0.54 * r, 1.32 * r, 0.94 * r, 0.05 * r, 0.045 * r, p.kit, p.outline, 0.5 * inv);
+  taper(ctx, 1.32 * r, 0.94 * r, 1.22 * r, 0.76 * r, 0.045 * r, 0.04 * r, p.kit, p.outline, 0.4 * inv);
 }
 
 /**

@@ -1,0 +1,22 @@
+# Build context hygiene: only what `npm ci && npm run build` needs.
+# tsconfig.json includes src, tests, vite.config.ts, vitest.config.ts and
+# playwright.config.ts, so the tests and configs stay in the context.
+node_modules
+dist
+.git
+.gitignore
+.vite
+.DS_Store
+*.local
+
+# Artifacts that are never read during the build
+screenshots
+test-results
+playwright-report
+blob-report
+tools
+
+# Editor / agent noise
+.vscode
+.idea
+*.log
