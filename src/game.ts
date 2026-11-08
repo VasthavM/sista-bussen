@@ -57,6 +57,8 @@ export interface GameDeps {
   persist(): void;
   onProfileChanged(): void;
   onExitToMenu(): void;
+  /** The run summary is showing: a waiting app update may be re-offered (never applied). */
+  onRunSummary?(): void;
 }
 
 export interface DebugState {
@@ -590,6 +592,7 @@ export class Game {
     this.phase = 'summary';
     this.input.reset();
     this.deps.persist(); // run end: bank playtime even if the app is closed on this screen
+    this.deps.onRunSummary?.();
     if (adsOfferable(this.deps.profile) && !won && this.reviveOfferedAt !== state.revivesUsed) {
       this.reviveOfferedAt = state.revivesUsed;
       track('revive_offered', {
