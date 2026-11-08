@@ -17,6 +17,34 @@ npm run build      # typecheck + production bundle
 npm run preview    # serve the built bundle
 ```
 
+## Deploy
+
+Live on Max's own Coolify server (VPS2), project `Sista Bussen`, application `sista-bussen`,
+build pack `dockerfile`. The `Dockerfile` builds with `npm ci && npm run build` and serves `dist/` from
+nginx; `docker/nginx.conf` owns the caching and content-type rules (service worker and manifest are
+`no-cache`, `/assets/` is immutable, `.webmanifest` is served as `application/manifest+json`).
+
+Temporary host, because the subdomain has no DNS record yet:
+
+```
+https://q1khvfvk2w9tho9rc5psbhxx.187.124.132.205.sslip.io
+```
+
+To move it to `sista-bussen.vasthavm.com`: add `A sista-bussen` → `187.124.132.205` at the DNS provider,
+change the application's domain in Coolify to `https://sista-bussen.vasthavm.com`, redeploy, and let
+Traefik issue the certificate.
+
+Deploys are manual: push to `main`, then trigger a deploy in Coolify. Coolify's `static` build pack does
+**not** work for this repo — it copies pre-built files and never runs `npm run build`, and `dist/` is
+gitignored. Keep the Dockerfile path.
+
+Smoke-check a deployment before handing out a URL:
+
+```bash
+H=<host> node tools/live-check.mjs   # boots the game on an iPhone viewport, asserts no console
+                                     # errors, no failed requests, canvas present, SW active
+```
+
 ## Play
 
 - **Move:** drag anywhere on screen — a floating stick appears under your thumb. Desktop: WASD or arrows.
