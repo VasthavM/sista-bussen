@@ -28,7 +28,7 @@ Depth 1 extraction rate vs old night 1 win rate (rush, N=500, seed 1000, same se
 | vagn | 3.8% | 5.6% | +1.8 |
 | ficklampa | 50% | 53.0% | +3.0 |
 
-Median time to quota 3:52-4:00 (depth 1, all weapons), median time to extract 3:59-4:09.
+Median time to quota 3:54-4:00 (depth 1, all weapons), median time to extract 3:59-4:09.
 
 ## Combat feel unchanged: evidence
 
