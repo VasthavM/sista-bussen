@@ -18,6 +18,11 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
+# .git is not in the build context; Coolify passes the deployed commit as SOURCE_COMMIT
+# and vite.config.ts stamps it into the boot screen, settings and service worker.
+ARG SOURCE_COMMIT
+ENV SOURCE_COMMIT=$SOURCE_COMMIT
+
 COPY . .
 RUN npm run build
 

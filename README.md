@@ -128,8 +128,8 @@ node tools/icons.mjs    # writes public/icon-192.png, icon-512.png, icon-maskabl
   stays full-bleed, so launchers can crop to a circle or squircle.
 - `apple-touch-icon.png` — 180×180 and fully opaque. iOS ignores SVG icons and paints transparent pixels
   black, so this one has an opaque background.
-- `public/sw.js` precaches all four plus the manifest; bump its `CACHE` string when the artwork changes so
-  installed clients pick the new files up.
+- `public/sw.js` precaches all four plus the manifest and every hashed asset. The cache name is stamped at
+  build time (version, SHA, asset hash), so changed artwork reaches installed clients without a manual bump.
 
 Change the artwork in the generator, never by editing the PNGs.
 

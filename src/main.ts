@@ -93,7 +93,7 @@ audio.setMuted(profile.settings.muted);
 
 // ---- controlled updates (SW waiting / version line) ----
 
-const updates = new UpdateCoordinator(app);
+const updates = new UpdateCoordinator(app, () => game.getState().phase === 'menu');
 updates.attach();
 
 const renderer = createRenderer(canvas);
@@ -147,7 +147,7 @@ function showMenu(announceBreak = true): void {
   }
   // Menu entries are natural breaks: a waiting update may apply now (never at the
   // initial boot call, which passes `false`).
-  if (announceBreak) updates.onNaturalBreak();
+  if (announceBreak) updates.onMenu();
 }
 
 function shouldShowIntro(): boolean {
@@ -261,7 +261,7 @@ const game = new Game({
   persist,
   onProfileChanged: refreshMenu,
   onExitToMenu: () => showMenu(),
-  onNaturalBreak: () => updates.onNaturalBreak(),
+  onRunSummary: () => updates.onSummary(),
 });
 
 // ---- resize / orientation ----

@@ -11,11 +11,16 @@
  *  - Activating purges every cache generation except this build's own, so a document
  *    and its hashed chunks always come from the same cache.
  *
- * `[SB_BUILD_ID]` and `[SB_BUILD_SHA]` are substituted at build time by the Vite
- * build-id plugin (vite.config.ts). Never bump the cache by hand.
+ * `[SB_BUILD_ID]`, `[SB_BUILD_SHA]` and the asset list are substituted at build time by
+ * the Vite build-id plugin (vite.config.ts). Never bump the cache by hand.
+ *
+ * Install precaches the shell AND every hashed asset of this build, so "download
+ * complete" means the whole app is available offline and an update can never pair a new
+ * document with chunks fetched later from a different deploy.
  */
 const CACHE = '[SB_BUILD_ID]';
 const BUILD = '[SB_BUILD_SHA]';
+const ASSETS = [/*SB_PRECACHE*/];
 const SHELL = [
   './',
   './index.html',
@@ -25,6 +30,7 @@ const SHELL = [
   './icon-512.png',
   './icon-maskable-512.png',
   './apple-touch-icon.png',
+  ...ASSETS,
 ];
 
 self.addEventListener('install', (event) => {
@@ -76,11 +82,13 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(
     (async () => {
+      // ignoreVary: module scripts are CORS-mode requests and the server may answer
+      // `Vary: Origin`, which would otherwise miss the precached entry offline.
       // Cache first, always scoped to this build's cache so a stale document can
       // never be paired with chunks from an unrelated build.
       let cached = null;
       try {
-        cached = await caches.match(req, { cacheName: CACHE });
+        cached = await caches.match(req, { cacheName: CACHE, ignoreVary: true });
       } catch {
         cached = null; // corrupt cache: fall straight through to the network
       }
@@ -105,7 +113,7 @@ self.addEventListener('fetch', (event) => {
 
       if (req.mode === 'navigate') {
         // Offline navigation with a broken entry falls back to the shell document.
-        const shell = await caches.match(new Request('./index.html'), { cacheName: CACHE }).catch(() => null);
+        const shell = await caches.match(new Request('./index.html'), { cacheName: CACHE, ignoreVary: true }).catch(() => null);
         if (shell) return shell;
       }
       if (fresh) return fresh;

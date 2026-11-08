@@ -6,8 +6,12 @@
  * Reload discipline: a reload happens exactly once per accepted update, driven by the
  * accepting page instance's own `controllerchange` with a fallback timer. The
  * `accepting`/`reloaded` flags live only on the accepting page instance, so a loop can
- * never form — and nothing reloads while a run is in progress unless the player tapped
- * the banner themselves.
+ * never form. Only the player's own tap on the banner may reload mid-run; an update
+ * applied automatically at the menu reloads only while the menu is still showing.
+ *
+ * The run summary is a break where the update is *offered* again, never applied: the
+ * payout is only written when the player leaves the summary, so a reload there would
+ * forfeit the run's rewards and the revive offer.
  */
 
 import { button, el, remove } from './ui/kit';
@@ -25,12 +29,18 @@ export class UpdateCoordinator {
 
   private booted = false;
   private accepting = false;
+  private manual = false;
+  private pendingReload = false;
   private reloaded = false;
   private fallbackTimer = 0;
 
   private readonly listeners = new Set<(line: string) => void>();
 
-  constructor(private readonly appRoot: HTMLElement) {}
+  /** `atMenu` tells whether the game is on the menu right now (reload is safe). */
+  constructor(
+    private readonly appRoot: HTMLElement,
+    private readonly atMenu: () => boolean,
+  ) {}
 
   /** Wire page-side SW listeners; call once at boot, before registration. */
   attach(): void {
@@ -69,25 +79,37 @@ export class UpdateCoordinator {
     return () => this.listeners.delete(listener);
   }
 
-  /** Accept a restart: banner tap, or automatic application at a natural break. */
-  accept(): void {
+  /** Accept a restart. `manual` = the player tapped it; otherwise it is a menu break. */
+  accept(manual = true): void {
     const waiting = this.waiting;
     if (!waiting || this.accepting || this.reloaded) return;
     this.accepting = true;
+    this.manual = manual;
     this.closeBanner();
     waiting.postMessage({ type: 'SKIP_WAITING' });
     // If controllerchange never lands (the waiting worker was replaced meanwhile),
-    // force the single reload anyway so the accepted version doesn't strand.
-    this.fallbackTimer = window.setTimeout(() => this.reloadOnce(), RELOAD_FALLBACK_MS);
+    // still do the single reload so the accepted version doesn't strand.
+    this.fallbackTimer = window.setTimeout(() => this.reloadWhenSafe(), RELOAD_FALLBACK_MS);
   }
 
   /**
-   * A natural break (menu or run summary) was reached mid-session. If a worker became
-   * ready after boot, apply it quietly. Boot announcements are banner-only — a cold
-   * start must not immediately reload into itself.
+   * The menu is showing. If a worker became ready after boot, apply it quietly. Boot
+   * announcements are banner-only: a cold start must not immediately reload into itself.
    */
-  onNaturalBreak(): void {
-    if (this.waiting && this.booted) this.accept();
+  onMenu(): void {
+    if (!this.booted) return;
+    if (this.pendingReload) this.reloadOnce();
+    else this.accept(false);
+  }
+
+  /** The run summary is showing: re-offer a waiting update, but never apply it here. */
+  onSummary(): void {
+    if (this.waiting && !this.accepting) this.showBanner();
+  }
+
+  private reloadWhenSafe(): void {
+    if (this.manual || this.atMenu()) this.reloadOnce();
+    else this.pendingReload = true; // the player already started a run: wait for the next menu
   }
 
   private reloadOnce(): void {
@@ -108,7 +130,7 @@ export class UpdateCoordinator {
   private onControllerChange = (): void => {
     // A new build now owns this page: ask for its build for the version line.
     this.askBuild();
-    if (this.accepting) this.reloadOnce();
+    if (this.accepting) this.reloadWhenSafe();
   };
 
   private askBuild(): void {
@@ -148,7 +170,7 @@ export class UpdateCoordinator {
     actions.appendChild(
       button('UPPDATERA NU', {
         variant: 'amber',
-        onClick: () => this.accept(),
+        onClick: () => this.accept(true),
         ariaLabel: 'Uppdatera till den nya versionen',
       }),
     );

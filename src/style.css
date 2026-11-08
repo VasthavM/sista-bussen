@@ -451,12 +451,12 @@ ul {
 /* ---------- app update banner ---------- */
 
 /* The single, quiet "Ny version klar" notification from the update coordinator.
-   Anchored above the toast stack so the two never collide; never blocks input. */
+   Anchored under the top HUD, clear of the HP bar and the summary buttons at the bottom. */
 .update-banner {
   position: fixed;
   left: 50%;
-  bottom: calc(64px + var(--safe-bottom));
-  transform: translate(-50%, 8px);
+  top: calc(96px + var(--safe-top));
+  transform: translate(-50%, -8px);
   width: min(92vw, 480px);
   display: flex;
   align-items: center;
