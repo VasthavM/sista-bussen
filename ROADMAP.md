@@ -50,14 +50,27 @@ Phases 1–2 are not wasted by it: every one of them ships to the store build to
 - **Two update lanes, and they are not equivalent.** JS and assets can keep updating through the service
   worker flow from #6. Anything native (a new plugin, a permission, an SDK) needs a store submission and
   review. This is why #6 is the foundation of the whole roadmap.
-- **Commerce changes hands.** Apple requires its own in-app purchase for digital goods sold inside the app,
-  which is what the `IapProvider` mock in `src/monetize/ads.ts` exists to absorb (#2). Budget for a store
-  commission on every purchase, and check whether rewarded ads need a tracking prompt.
-- **Review risk is real.** A wrapped website can be rejected for being "just a website". Native-only
-  affordances — haptics, backgrounding behaviour, a real offline story — are what make it read as an app
-  rather than a bookmark.
-- **Cost and timeline figures** are being verified against Apple's own pages rather than quoted from memory;
-  they land in the App Store issue with sources.
+- **Commerce changes hands.** Apple requires its own in-app purchase for digital goods sold inside the app —
+  guideline 3.1.1, read in full: in-game currencies and unlocked content "must use in-app purchase", may not
+  expire, and need a restore path. That is what the `IapProvider` mock in `src/monetize/ads.ts` exists to
+  absorb (#2). The Small Business Program commission is **15 %** for developers under 1M USD in proceeds, and
+  **10 %** on the EU alternative terms; the standard 30 % rate was not primary-read this session, so treat it
+  as the ceiling until confirmed.
+- **Review risk is real, and it is about packaging, not wrapping.** Guideline 4.2 is still "Minimum
+  Functionality", and Apple's own review page says a repackaged website does not make "a quality app". Native-only
+  affordances — haptics, backgrounding behaviour, a real offline story — are what make it read as an app rather
+  than a bookmark.
+- **Toolchain is already sufficient.** Capacitor 8.6.0 requires Xcode 26 minimum; this machine runs macOS 27.0
+  with Xcode 27.2. No upgrade needed to start. Pin 8.x — a v9 already appears in the docs version selector.
+- **Privacy manifest is mandatory**, required-reason APIs included; `@capacitor/preferences` is the usual trigger
+  if persistence moves off `localStorage`.
+- **TestFlight is the fast lane to a real installed app**: internal testers (up to 100 team-role accounts) need no
+  App Review; external testers (up to 10,000) require the first build to be reviewed.
+- **Cost:** Apple Developer Program is **99 USD/year**; the SEK amount and Swedish VAT are only visible at the
+  payment step. Confirm before committing.
+
+Details and sources: issue #8. Two things remain unverified and are settled at submission, not asserted here —
+the age-rating bucket and EU DSA trader status, which if applicable publishes contact details publicly.
 
 **NEEDS MAX before this phase starts:** an Apple Developer account decision (cost, and whether the game is
 worth the annual fee), and a decision on whether to ship free-with-ads first or with purchases from day one.
