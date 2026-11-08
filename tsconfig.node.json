@@ -1,0 +1,6 @@
+{
+  // Build-time config files run in Node, so they get node types; src/ and tests/ do not.
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "types": ["node"] },
+  "include": ["vite.config.ts", "vitest.config.ts", "playwright.config.ts"]
+}

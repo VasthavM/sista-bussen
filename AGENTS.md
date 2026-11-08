@@ -17,8 +17,13 @@ npm install
 npm run build          # tsc --noEmit + vite build
 npm test               # vitest unit tests
 npx playwright test    # e2e (boots the built game)
+npm run build:docker-check   # clean-room docker build, same as Coolify
 H=<host> node tools/live-check.mjs   # smoke-check a deployment
 ```
+
+`npm run build:docker-check` builds the production image from scratch (no cache, no local node_modules). Local
+builds can pass while the container fails: a stray `~/node_modules/@types/node` above the repo hides missing
+dependencies from tsc. **The merger must run it before any push to main.** Needs a running Docker daemon.
 
 ## Hard rules
 
