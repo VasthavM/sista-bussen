@@ -1,6 +1,7 @@
 # Build context hygiene: only what `npm ci && npm run build` needs.
 # tsconfig.json includes src, tests, vite.config.ts, vitest.config.ts and
 # playwright.config.ts, so the tests and configs stay in the context.
+# tools/ stays too: tests/balance.test.ts imports tools/balance-lib.
 node_modules
 dist
 .git
@@ -14,7 +15,6 @@ screenshots
 test-results
 playwright-report
 blob-report
-tools
 
 # Editor / agent noise
 .vscode
