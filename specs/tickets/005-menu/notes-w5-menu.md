@@ -13,3 +13,11 @@ Branch `totto/5-menu` off `totto/phase1` @ 4285b2e. Worktree `/Users/vasthavm/Co
 build, `npm test` (74/74), full e2e (19/19, `PW_PORT=4187`) green. Screenshots: `screenshots/01-menu.png`, `menu-375x667.png`, `menu-430x932.png`, `menu-weapons-375x667.png`, `menu-weapons-430x932.png`.
 
 Risks: the 430x932 viewport is letterboxed by the existing app frame (pre-existing). Weapon description in the slot clamps to 2 lines on a 375 wide screen; full text is in the sheet.
+
+## Round 2 (body ACs)
+- Bottom nav (`nav.menu__nav`): four icon+label buttons (inline SVG, no dependency), 52px tall, safe-area handled by the screen padding; settings is one tap.
+- Currency is a pill chip under the sign (Biljetter, plus Vapennycklar when > 0).
+- Sign grows to absorb free height (capped at 300px), tagline moved inside it; no void between blocks (e2e asserts every gap <= 40px).
+- Weapon sheet: `-> EVOLVED NAME` tag plus `Utvecklas vid nivå 8 + <passive> 3` from `WEAPON_MAX_LEVEL`, `EVOLUTION_PASSIVE_LEVEL` and `PASSIVES` (read-only imports of the frozen sim).
+- Slot affordance is an SVG chevron, not repeated text ("BYT" appeared twice). CTA no longer carries a sub-label.
+- e2e: 25/25 on PW_PORT=4187; unit 74/74.

@@ -1,7 +1,8 @@
 /** Kuren: the menu. Bus-stop signage, night select, loadout, and the doors to the meta screens. */
 
 import type { AudioEngine } from '../audio';
-import { CHARACTERS, CHARACTER_ORDER, WEAPONS, WEAPON_ORDER } from '../sim/content';
+import { CHARACTERS, CHARACTER_ORDER, PASSIVES, WEAPONS, WEAPON_ORDER } from '../sim/content';
+import { EVOLUTION_PASSIVE_LEVEL, WEAPON_MAX_LEVEL } from '../sim/upgrades';
 import type { CharacterId, WeaponId } from '../sim/types';
 import { isWeaponUnlocked, WEAPON_UNLOCK_COST } from '../meta/shop';
 import type { Profile } from '../meta/save';
@@ -79,12 +80,13 @@ export function mountMenu(deps: MenuDeps): MenuView {
     sign.appendChild(el('div', 'menu__sign-top', 'HÅLLPLATS · NATT'));
     sign.appendChild(el('h1', 'menu__title', 'SISTA BUSSEN'));
     sign.appendChild(el('div', 'menu__sign-bottom', '23:00 — 03:00'));
-    head.appendChild(sign);
-    head.appendChild(
+    sign.appendChild(
       el('p', 'menu__tagline', 'Håll ut till sista bussen. Den är alltid sen, men den kommer.'),
     );
+    head.appendChild(sign);
 
     const wallet = el('div', 'menu__wallet');
+    wallet.setAttribute('aria-label', 'Ditt innehav');
     const tickets = el('div', 'wallet wallet--tickets');
     tickets.appendChild(el('span', 'wallet__label', 'Biljetter'));
     tickets.appendChild(el('span', 'wallet__value', fmt(deps.profile.tickets)));
@@ -153,7 +155,6 @@ export function mountMenu(deps: MenuDeps): MenuView {
     const startWrap = el('div', 'menu__start');
     const start = button('ÅK UT I NATTEN', {
       variant: 'primary',
-      sub: `Natt ${selection.night}`,
       onClick: () => {
         deps.audio.play('ui_click');
         deps.onStart({ ...selection });
@@ -164,47 +165,27 @@ export function mountMenu(deps: MenuDeps): MenuView {
     startWrap.appendChild(start);
     foot.appendChild(startWrap);
 
-    const doors = el('div', 'menu__doors');
-    doors.appendChild(
-      button('BUTIK', {
-        variant: 'ghost',
-        onClick: () => {
-          deps.audio.play('ui_click');
-          deps.onOpenShop('upgrades');
-        },
-      }),
-    );
-    doors.appendChild(
-      button('KONTRAKT', {
-        variant: 'ghost',
-        onClick: () => {
-          deps.audio.play('ui_click');
-          deps.onOpenContracts();
-        },
-      }),
-    );
-    doors.appendChild(
-      button('DAGLÅDA', {
-        variant: 'ghost',
-        onClick: () => {
-          deps.audio.play('ui_click');
-          deps.onOpenCrate();
-        },
-      }),
-    );
-    doors.appendChild(
-      button('INSTÄLLNINGAR', {
-        variant: 'ghost',
-        onClick: () => {
-          deps.audio.play('ui_click');
-          deps.onOpenSettings();
-        },
-      }),
-    );
-    for (const child of Array.from(doors.children)) {
-      (child as HTMLElement).classList.add('menu__door');
+    const nav = el('nav', 'menu__nav');
+    nav.setAttribute('aria-label', 'Meny');
+    const doors: Array<[string, string, () => void]> = [
+      ['BUTIK', ICONS.shop, () => deps.onOpenShop('upgrades')],
+      ['KONTRAKT', ICONS.contracts, () => deps.onOpenContracts()],
+      ['DAGLÅDA', ICONS.crate, () => deps.onOpenCrate()],
+      ['INSTÄLLNINGAR', ICONS.settings, () => deps.onOpenSettings()],
+    ];
+    for (const [label, icon, open] of doors) {
+      const item = el('button', 'menu__nav-item');
+      item.type = 'button';
+      item.appendChild(svgIcon(icon));
+      item.appendChild(el('span', 'menu__nav-label', label));
+      item.addEventListener('click', (event) => {
+        event.preventDefault();
+        deps.audio.play('ui_click');
+        open();
+      });
+      nav.appendChild(item);
     }
-    foot.appendChild(doors);
+    foot.appendChild(nav);
     root.appendChild(foot);
 
     if (sheet) root.appendChild(buildSheet(sheet));
@@ -255,7 +236,9 @@ export function mountMenu(deps: MenuDeps): MenuView {
     btn.appendChild(el('span', 'loadout__label', label));
     const top = el('span', 'loadout__top');
     top.appendChild(el('span', 'loadout__name', name));
-    top.appendChild(el('span', 'loadout__change', 'BYT ›'));
+    const change = el('span', 'loadout__change');
+    change.appendChild(svgIcon(ICONS.chevron));
+    top.appendChild(change);
     btn.appendChild(top);
     btn.appendChild(el('span', 'loadout__line', line));
     btn.addEventListener('click', (event) => {
@@ -310,8 +293,9 @@ export function mountMenu(deps: MenuDeps): MenuView {
             locked: !open,
             colour: def.colour,
             name: def.name,
-            tag: def.evolvedName,
+            tag: `→ ${def.evolvedName}`,
             desc: def.desc,
+            evo: `Utvecklas vid nivå ${WEAPON_MAX_LEVEL} + ${PASSIVES[def.passive].name} ${EVOLUTION_PASSIVE_LEVEL}`,
             lockNote: `LÅST · ${fmt(WEAPON_UNLOCK_COST)} Biljetter · till butiken ›`,
             onPick: () => {
               if (!open) {
@@ -345,6 +329,7 @@ export function mountMenu(deps: MenuDeps): MenuView {
     name: string;
     tag: string;
     desc: string;
+    evo?: string;
     lockNote?: string;
     onPick: () => void;
   }
@@ -363,6 +348,7 @@ export function mountMenu(deps: MenuDeps): MenuView {
     head.appendChild(el('span', 'pick__tag', o.tag));
     text.appendChild(head);
     text.appendChild(el('span', 'pick__desc', o.desc));
+    if (o.evo) text.appendChild(el('span', 'pick__evo', o.evo));
     if (o.locked && o.lockNote) text.appendChild(el('span', 'pick__lock', o.lockNote));
     pick.appendChild(text);
     if (o.active) pick.appendChild(el('span', 'pick__check', 'VALD'));
@@ -388,6 +374,26 @@ export function mountMenu(deps: MenuDeps): MenuView {
       return { ...selection };
     },
   };
+}
+
+const ICONS = {
+  shop: 'M6 8h12l-1 12H7L6 8z M9 8a3 3 0 0 1 6 0',
+  contracts: 'M7 4h10v17H7z M10 9h4 M10 13h4 M10 17h2',
+  crate: 'M3 8l9-4 9 4v9l-9 4-9-4z M3 8l9 4 9-4 M12 12v9',
+  chevron: 'M6 9l6 6 6-6',
+  settings: 'M4 7h9 M17 7h3 M4 17h3 M11 17h9 M15 4v6 M9 14v6',
+} as const;
+
+function svgIcon(path: string): SVGSVGElement {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('class', 'icon');
+  svg.setAttribute('aria-hidden', 'true');
+  const shape = document.createElementNS(ns, 'path');
+  shape.setAttribute('d', path);
+  svg.appendChild(shape);
+  return svg;
 }
 
 function storage(): Storage | null {
