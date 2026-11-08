@@ -1,0 +1,52 @@
+{
+  "version": 2,
+  "createdAt": 1790000000000,
+  "tickets": 842,
+  "nightUnlocked": 5,
+  "bestNight": 4,
+  "totalRuns": 31,
+  "playtimeSeconds": 5400.5,
+  "wins": 2,
+  "runsSinceInterstitial": 0,
+  "lastInterstitialAt": null,
+  "unlockedWeapons": [
+    "nyckel",
+    "korv",
+    "spray",
+    "ficklampa",
+    "vagn"
+  ],
+  "weaponTokens": 2,
+  "upgrades": {
+    "kraft": 3,
+    "liv": 2,
+    "fart": 1,
+    "startnyckel": 1
+  },
+  "ownedSkus": [],
+  "vipUntil": 0,
+  "removeAds": false,
+  "settings": {
+    "muted": false,
+    "haptics": true
+  },
+  "daily": {
+    "lastClaimDay": "2026-11-07",
+    "streak": 3,
+    "adPulls": 1,
+    "adPullDay": "2026-11-07"
+  },
+  "contracts": {
+    "day": "",
+    "items": []
+  },
+  "colours": [
+    "standard"
+  ],
+  "activeColour": "standard",
+  "lastRun": {
+    "night": 4,
+    "time": 180.25,
+    "kills": 212
+  }
+}

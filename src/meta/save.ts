@@ -1,9 +1,14 @@
 import { WEAPON_ORDER } from '../sim/content';
 import type { WeaponId } from '../sim/types';
+import type { Materials } from '../sim/map';
 import { generateContracts, type Contract } from './contracts';
+import { MAX_OPTIONS, SEGMENT_LENGTH, createRoute, deriveSegmentSeed, segmentIndexOf, type RouteState } from './route';
 
 export const SAVE_KEY = 'sista-bussen.save.v1';
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
+
+const MAX_DEPTH = 99_999;
+const MAX_MATERIAL = 99_999_999;
 
 export interface DailyState {
   lastClaimDay: string | null;
@@ -15,6 +20,7 @@ export interface DailyState {
 export interface Profile {
   version: number;
   createdAt: number;
+  /** Biljetter. v3 keeps them for the current game; the upgrade-tree ticket retires them for `materials.scrap`. */
   tickets: number;
   nightUnlocked: number;
   bestNight: number;
@@ -36,9 +42,21 @@ export interface Profile {
   colours: string[];
   activeColour: string;
   lastRun: { night: number; time: number; kills: number } | null;
+  /** v3: banked route materials. */
+  materials: Materials;
+  /** v3: seed of the whole route. Segment seeds derive from it. */
+  routeSeed: number;
+  /** v3: where the player stands on the route. */
+  route: RouteState;
+}
+
+/** Stable routeSeed for saves that have none: derived from createdAt, never random. */
+function seedFromCreatedAt(createdAt: number): number {
+  return deriveSegmentSeed(Math.floor(createdAt) >>> 0, 0xc0ffee);
 }
 
 export function createFreshProfile(now = Date.now()): Profile {
+  const routeSeed = seedFromCreatedAt(now);
   return {
     version: SAVE_VERSION,
     createdAt: now,
@@ -62,6 +80,9 @@ export function createFreshProfile(now = Date.now()): Profile {
     colours: ['standard'],
     activeColour: 'standard',
     lastRun: null,
+    materials: { scrap: 0, parts: 0, supplies: 0 },
+    routeSeed,
+    route: createRoute(routeSeed),
   };
 }
 
@@ -116,6 +137,33 @@ function asContractList(value: unknown): Contract[] | null {
   return out.length > 0 ? out : null;
 }
 
+function asMaterials(value: unknown): Materials {
+  const m = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+  return {
+    scrap: asInt(m.scrap, 0, 0, MAX_MATERIAL),
+    parts: asInt(m.parts, 0, 0, MAX_MATERIAL),
+    supplies: asInt(m.supplies, 0, 0, MAX_MATERIAL),
+  };
+}
+
+/** Clamp a stored route into a state the route layer can trust. The segment seed is always recomputed. */
+function asRoute(value: unknown, routeSeed: number, bestDepthFallback: number): RouteState {
+  const r = value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+  const bestDepth = asInt(r.bestDepth, bestDepthFallback, 0, MAX_DEPTH);
+  let depth = asInt(r.depth, 1, 1, MAX_DEPTH);
+  const maxCheckpoint = Math.floor((depth - 1) / SEGMENT_LENGTH) * SEGMENT_LENGTH;
+  const checkpoint = Math.min(maxCheckpoint, Math.floor(asInt(r.checkpoint, 0, 0, MAX_DEPTH) / SEGMENT_LENGTH) * SEGMENT_LENGTH);
+  let path = Array.isArray(r.path)
+    ? r.path.filter((i): i is number => Number.isInteger(i) && (i as number) >= 0 && (i as number) < MAX_OPTIONS)
+    : [];
+  // Path length must match the position in the segment; otherwise restart from the checkpoint.
+  if (path.length !== (depth - 1) % SEGMENT_LENGTH) {
+    depth = checkpoint + 1;
+    path = [];
+  }
+  return { depth, checkpoint, segmentSeed: deriveSegmentSeed(routeSeed, segmentIndexOf(depth)), path, bestDepth };
+}
+
 /**
  * Turn any parsed JSON (or a future/legacy shape) into a valid Profile.
  * Never throws; every field is clamped or replaced with a default.
@@ -128,6 +176,9 @@ export function normalizeSave(raw: unknown, now = Date.now()): Profile {
   // Legacy v0 profiles stored a bare { tickets, night } pair.
   const legacy = (data.version === undefined || data.version === 0) && !('nightUnlocked' in data);
   const legacyNight = asInt(data.night, 1, 1, 999);
+
+  // v2 -> v3 runs once: v3 saves carry their own materials and route.
+  const fromBefore3 = typeof data.version !== 'number' || data.version < 3;
 
   const profile: Profile = {
     ...base,
@@ -204,6 +255,20 @@ export function normalizeSave(raw: unknown, now = Date.now()): Profile {
     if (items) {
       profile.contracts = { day: asString(c.day, ''), items };
     }
+  }
+
+  // v3 fields. Pre-v3 saves: Biljetter become Scrap 1:1, nights map to bestDepth, the route starts fresh.
+  profile.routeSeed =
+    typeof data.routeSeed === 'number' && Number.isFinite(data.routeSeed)
+      ? Math.floor(data.routeSeed) >>> 0
+      : seedFromCreatedAt(profile.createdAt);
+  if (fromBefore3) {
+    profile.materials = { scrap: profile.tickets, parts: 0, supplies: 0 };
+    const bestDepth = Math.max(profile.bestNight, profile.nightUnlocked - 1);
+    profile.route = { ...createRoute(profile.routeSeed), bestDepth };
+  } else {
+    profile.materials = asMaterials(data.materials);
+    profile.route = asRoute(data.route, profile.routeSeed, 0);
   }
 
   const lastRun = data.lastRun;
