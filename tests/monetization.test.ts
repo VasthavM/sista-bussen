@@ -6,7 +6,10 @@ import {
   INTERSTITIAL_RULES,
   type AdPlacement,
 } from '../src/monetize/catalog';
-import { shouldShowInterstitial, type InterstitialContext } from '../src/monetize/ads';
+import { shouldShowInterstitial as guard, type InterstitialContext } from '../src/monetize/ads';
+
+// The guard logic is tested with the launch kill-switch on; see adgate.test.ts for it off.
+const shouldShowInterstitial = (c: InterstitialContext, now: number) => guard(c, now, true);
 
 function ctx(overrides: Partial<InterstitialContext> = {}): InterstitialContext {
   return {

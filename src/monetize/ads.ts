@@ -2,10 +2,17 @@ import {
   AD_COUNTDOWN_MS,
   IAP_CATALOG,
   INTERSTITIAL_RULES,
+  INTERSTITIALS_ENABLED,
+  REWARDED_ONBOARDING_FREE_MINUTES,
   type AdPlacement,
   type IapProduct,
   type IapSku,
 } from './catalog';
+
+/** True once the player is past the onboarding window; before it no rewarded offer is rendered. */
+export function adsOfferable(profile: { playtimeSeconds: number }): boolean {
+  return profile.playtimeSeconds >= REWARDED_ONBOARDING_FREE_MINUTES * 60;
+}
 
 export interface AdOutcome {
   completed: boolean;
@@ -58,9 +65,15 @@ export interface InterstitialContext {
  * - never before the player has finished their first run (onboarding)
  * - at most one per 3 completed runs
  * - at least 90s between interstitials
+ * - off entirely while INTERSTITIALS_ENABLED is false (launch)
  * - removed entirely by the remove_ads purchase
  */
-export function shouldShowInterstitial(ctx: InterstitialContext, nowMs: number): boolean {
+export function shouldShowInterstitial(
+  ctx: InterstitialContext,
+  nowMs: number,
+  enabled: boolean = INTERSTITIALS_ENABLED,
+): boolean {
+  if (!enabled) return false;
   if (ctx.removeAds) return false;
   if (ctx.inRun) return false;
   if (ctx.completedRuns < INTERSTITIAL_RULES.minCompletedRunsBeforeFirst) return false;

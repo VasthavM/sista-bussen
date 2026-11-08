@@ -10,6 +10,7 @@ import {
   extraPullsLeft,
 } from '../meta/daily';
 import type { Profile } from '../meta/save';
+import { adsOfferable } from '../monetize/ads';
 import { AD_PLACEMENTS } from '../monetize/catalog';
 import { button, el, fmt, toast } from './kit';
 import type { AdGate } from './adOverlay';
@@ -107,42 +108,44 @@ export function openCrate(deps: CrateDeps): OverlayHandle {
       body.appendChild(done);
     }
 
-    const adCap = AD_PLACEMENTS.free_crate.cap;
-    const extra = button('EXTRA DRAG', {
-      variant: 'amber',
-      sub: `Belönad annons · ${pulls} av ${adCap} kvar idag`,
-      disabled: pulls <= 0 || busy,
-      onClick: () => {
-        if (busy || pulls <= 0) return;
-        busy = true;
-        void deps.gate.run('free_crate').then((outcome) => {
-          busy = false;
-          if (!outcome.completed) {
+    if (adsOfferable(deps.profile)) {
+      const adCap = AD_PLACEMENTS.free_crate.cap;
+      const extra = button('EXTRA DRAG', {
+        variant: 'amber',
+        sub: `Belönad annons · ${pulls} av ${adCap} kvar idag`,
+        disabled: pulls <= 0 || busy,
+        onClick: () => {
+          if (busy || pulls <= 0) return;
+          busy = true;
+          void deps.gate.run('free_crate').then((outcome) => {
+            busy = false;
+            if (!outcome.completed) {
+              render();
+              return;
+            }
+            const reward = claimExtraCrate(deps.profile);
+            if (!reward.ok) {
+              toast('Inga fler drag idag', 'bad');
+              render();
+              return;
+            }
+            track('crate_claim', {
+              streak: deps.profile.daily.streak,
+              tickets: reward.tickets,
+              weaponTokens: 0,
+              viaAd: true,
+            });
+            deps.audio.play('ad_reward');
+            deps.persist();
+            deps.onChanged();
+            toast(`+${fmt(reward.tickets)} Biljetter`, 'good');
             render();
-            return;
-          }
-          const reward = claimExtraCrate(deps.profile);
-          if (!reward.ok) {
-            toast('Inga fler drag idag', 'bad');
-            render();
-            return;
-          }
-          track('crate_claim', {
-            streak: deps.profile.daily.streak,
-            tickets: reward.tickets,
-            weaponTokens: 0,
-            viaAd: true,
           });
-          deps.audio.play('ad_reward');
-          deps.persist();
-          deps.onChanged();
-          toast(`+${fmt(reward.tickets)} Biljetter`, 'good');
-          render();
-        });
-      },
-    });
-    extra.classList.add('crate__extra');
-    body.appendChild(extra);
+        },
+      });
+      extra.classList.add('crate__extra');
+      body.appendChild(extra);
+    }
 
     body.appendChild(
       el('p', 'crate__note crate__note--dim', `Dagens datum: ${dayKey(new Date())}. Streak bryts om du missar en dag.`),

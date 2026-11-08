@@ -23,6 +23,8 @@ export interface SummaryData {
   revivesLeft: number;
   revivesUsed: number;
   nextNightUnlocked: boolean;
+  /** False during onboarding: no ad offer is rendered at all. */
+  adsOfferable: boolean;
 }
 
 export interface SummaryDeps {
@@ -83,7 +85,7 @@ export function mountSummary(deps: SummaryDeps, initial: SummaryData): SummaryVi
 
     const offers = el('div', 'summary__offers');
 
-    if (!data.won && data.revivesLeft > 0) {
+    if (data.adsOfferable && !data.won && data.revivesLeft > 0) {
       const remainText = `${data.revivesLeft} av ${AD_PLACEMENTS.revive.cap} kvar`;
       const revive = button(AD_PLACEMENTS.revive.title, {
         variant: 'primary',
@@ -98,7 +100,9 @@ export function mountSummary(deps: SummaryDeps, initial: SummaryData): SummaryVi
       offers.appendChild(revive);
     }
 
-    if (!data.doubleFares) {
+    if (!data.adsOfferable) {
+      // Onboarding: nothing to offer.
+    } else if (!data.doubleFares) {
       const dbl = button(AD_PLACEMENTS.double_fares.title, {
         variant: 'amber',
         sub: `Belönad annons · ${AD_PLACEMENTS.double_fares.reward}`,
@@ -116,7 +120,7 @@ export function mountSummary(deps: SummaryDeps, initial: SummaryData): SummaryVi
       offers.appendChild(done);
     }
 
-    root.appendChild(offers);
+    if (offers.childElementCount > 0) root.appendChild(offers);
 
     const nav = el('div', 'summary__nav');
     const retry = button(data.won ? 'SPELA NÄSTA NATT' : 'FÖRSÖK IGEN', {
