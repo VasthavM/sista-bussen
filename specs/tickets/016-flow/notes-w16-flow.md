@@ -29,8 +29,8 @@ Branch `totto/16-flow`, worktree `/Users/vasthavm/Code/Worktrees-dsf/16-flow`. B
 - [x] Summaries: extracted and died, both at 375x667 (`summary-extracted-375x667.png`, `summary-died-375x667.png`). Double materials banks exactly one more copy (asserted in `route.spec.ts` and `money.spec.ts`).
 - [x] Menu: night picker gone, loadout row kept, materials chips (`menu.spec.ts` updated, passes).
 - [x] E2E: `route.spec.ts` covers start -> route -> stop -> quota -> bus -> summary -> route at stop 2, death -> checkpoint (from depth 14, checkpoint 10 -> depth 11), safe stop, boss label, revive undoing the fall-back. money, adgate, menu, map, game specs pass on chromium (run 2, before the arrow-inset tweak): 27/27 for those files.
-- [ ] `npm test`: 16 files, 169 tests pass. `npm run build`: green.
-- [ ] Full e2e: chromium update.spec had 4 failures from the old Swedish label `INSTÄLLNINGAR` in its settings helper; fixed in `1a`-commit "test: update.spec opens settings by its English label", **not re-run** (Totto stopped e2e for the audio issue). WebKit update.spec: same cause, not re-run.
+- [x] `npm test`: 16 files, 169 tests pass. `npm run build`: green.
+- [ ] Full e2e: chromium update.spec had 4 failures from the old Swedish label `INSTÄLLNINGAR` in its settings helper; fixed in f33b2fc, **not re-run** (Totto stopped e2e for the audio issue). WebKit update.spec: same cause, not re-run.
 - [ ] `npm run build:docker-check`: **blocked**, the Docker daemon is not running on this machine (`failed to connect to the docker API at unix:///Users/vasthavm/.docker/run/docker.sock`). Needs Docker started, then re-run.
 
 ## Open risks
