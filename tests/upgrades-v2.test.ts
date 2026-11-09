@@ -254,3 +254,23 @@ describe('modsFromProfileV2', () => {
     expect(modsFromProfileV2(p).hp).toBe(12);
   });
 });
+
+describe('a bought evolution unlock reaches the sim', () => {
+  it('modsFromProfile feeds MetaMods.evolutionUnlocks and canEvolve uses the early rule', async () => {
+    const { modsFromProfile } = await import('../src/meta/shop');
+    const { createRun } = await import('../src/sim/state');
+    const { canEvolve } = await import('../src/sim/upgrades');
+    const { runConfig } = await import('./helpers');
+    let p = rich();
+    p = buy(buy(buy(p, 'w_damage')!, 'c_hp')!, 'evo_nyckel')!;
+    const cfg = { ...runConfig(5), mods: modsFromProfile(p) };
+    const state = createRun(cfg);
+    state.weapons[0].level = 5;
+    state.passives.handskar = 2;
+    expect(canEvolve(state, 'nyckel')).toBe(true);
+    const plain = createRun(runConfig(5));
+    plain.weapons[0].level = 5;
+    plain.passives.handskar = 2;
+    expect(canEvolve(plain, 'nyckel')).toBe(false);
+  });
+});
