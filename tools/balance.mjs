@@ -9,6 +9,7 @@
  * Options (all optional):
  *   --depths 1-5 | 1,3       --weapons all | nyckel,korv      --character nattvandraren
  *   --quota <fuel> (default: fuelQuotaFor(depth))   --policy rush | greedy | random | rush:<weapon>   --mods damage=0.1,hp=20,startWeaponLevel=2
+ *   --unlock all | nyckel,korv   early evolution (weapon lvl 5, passive lvl 2) for those weapons
  *   --n 200   --seed 1000   --workers <cpus-2>   --out report.json   --md tables.md   --layout baseline|configs
  */
 import './balance-boot.mjs';
@@ -63,6 +64,7 @@ const configs = weapons.flatMap((weapon) =>
     weapon,
     policy: args.policy ?? 'rush',
     mods: parseMods(args.mods),
+    unlock: args.unlock === undefined ? [] : parseList(args.unlock, WEAPON_ORDER),
     n,
     baseSeed,
   })),
