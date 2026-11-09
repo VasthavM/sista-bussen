@@ -23,9 +23,9 @@ export interface Payout {
 export const CHANGE_TO_TICKETS = 0.5;
 
 /**
- * Convert run Växel into persistent Biljetter.
+ * Convert run scrap into persistent scrap (the old tickets).
  * The double-fares rewarded ad doubles the run currency before conversion;
- * the Växling meta upgrade and VIP pass add their own multipliers.
+ * the Salvage meta upgrade and VIP pass add their own multipliers.
  */
 export function computePayout(input: PayoutInput): Payout {
   const change = Math.max(0, Math.floor(input.change));

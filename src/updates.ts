@@ -194,16 +194,16 @@ export class UpdateCoordinator {
     if (this.banner) return;
     const banner = el('div', 'update-banner');
     banner.setAttribute('role', 'status');
-    banner.appendChild(el('span', 'update-banner__text', 'Ny version klar'));
+    banner.appendChild(el('span', 'update-banner__text', 'New version ready'));
     const actions = el('div', 'update-banner__actions');
     actions.appendChild(
-      button('UPPDATERA NU', {
+      button('UPDATE NOW', {
         variant: 'amber',
         onClick: () => this.accept(true),
-        ariaLabel: 'Uppdatera till den nya versionen',
+        ariaLabel: 'Update to the new version',
       }),
     );
-    actions.appendChild(button('SENARE', { variant: 'ghost', onClick: () => this.closeBanner() }));
+    actions.appendChild(button('LATER', { variant: 'ghost', onClick: () => this.closeBanner() }));
     banner.appendChild(actions);
     this.appRoot.appendChild(banner);
     requestAnimationFrame(() => banner.classList.add('update-banner--in'));

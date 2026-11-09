@@ -69,7 +69,7 @@ test('a fresh profile is offered no rewarded ad anywhere', async ({ page }) => {
   await expect(page.locator('.crate')).not.toContainText('annons');
   await page.locator('.crate__claim').click();
   await expect.poll(async () => (await page.evaluate(() => window.__game!.profile())).tickets).toBeGreaterThan(0);
-  await page.getByRole('button', { name: 'STÄNG', exact: true }).click();
+  await page.getByRole('button', { name: 'CLOSE', exact: true }).click();
 
   // Contracts: no ad skip, no extra-pull teaser.
   await page.getByRole('button', { name: 'KONTRAKT' }).click();

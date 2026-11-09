@@ -1,14 +1,14 @@
 {
-  "name": "Sista Bussen",
-  "short_name": "Sista Bussen",
-  "description": "Survivor-like på busshållplatsen. Håll ut till 03:00.",
+  "name": "ZOMBUS",
+  "short_name": "ZOMBUS",
+  "description": "Zombie survivor game. The bus still runs. Find fuel, keep moving.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0b0e12",
   "theme_color": "#0b0e12",
-  "lang": "sv",
+  "lang": "en",
   "icons": [
     {
       "src": "./icon-192.png",

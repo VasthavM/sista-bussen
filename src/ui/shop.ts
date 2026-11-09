@@ -36,10 +36,10 @@ export interface ShopDeps {
 }
 
 const TABS: Array<{ id: ShopTab; label: string }> = [
-  { id: 'upgrades', label: 'UPPGRADERINGAR' },
-  { id: 'weapons', label: 'VAPEN' },
-  { id: 'colours', label: 'FÄRGER' },
-  { id: 'store', label: 'BUTIK' },
+  { id: 'upgrades', label: 'UPGRADES' },
+  { id: 'weapons', label: 'WEAPONS' },
+  { id: 'colours', label: 'COLOURS' },
+  { id: 'store', label: 'STORE' },
 ];
 
 export function openShop(deps: ShopDeps): OverlayHandle {
@@ -47,12 +47,12 @@ export function openShop(deps: ShopDeps): OverlayHandle {
 
   const root = el('div', 'shop sheet');
   const head = el('div', 'shop__head');
-  head.appendChild(el('h2', 'sheet__title', 'BUTIKEN'));
+  head.appendChild(el('h2', 'sheet__title', 'THE STORE'));
   const wallet = el('div', 'shop__wallet');
-  const balance = el('span', 'shop__balance', `${fmt(deps.profile.tickets)} Biljetter`);
+  const balance = el('span', 'shop__balance', `${fmt(deps.profile.tickets)} scrap`);
   wallet.appendChild(balance);
   if (deps.profile.weaponTokens > 0) {
-    wallet.appendChild(el('span', 'shop__tokens', `${fmt(deps.profile.weaponTokens)} vapennycklar`));
+    wallet.appendChild(el('span', 'shop__tokens', `${fmt(deps.profile.weaponTokens)} weapon keys`));
   }
   head.appendChild(wallet);
   root.appendChild(head);
@@ -65,7 +65,7 @@ export function openShop(deps: ShopDeps): OverlayHandle {
 
   const foot = el('div', 'sheet__footer');
   foot.appendChild(
-    button('STÄNG', {
+    button('CLOSE', {
       variant: 'ghost',
       onClick: () => {
         deps.audio.play('ui_click');
@@ -75,10 +75,10 @@ export function openShop(deps: ShopDeps): OverlayHandle {
   );
   root.appendChild(foot);
 
-  const handle: OverlayHandle = deps.host.push(root, { dismissable: true, label: 'Butik' });
+  const handle: OverlayHandle = deps.host.push(root, { dismissable: true, label: 'Store' });
 
   function refreshWallet(): void {
-    balance.textContent = `${fmt(deps.profile.tickets)} Biljetter`;
+    balance.textContent = `${fmt(deps.profile.tickets)} scrap`;
     deps.onChanged();
   }
 
@@ -107,9 +107,9 @@ export function openShop(deps: ShopDeps): OverlayHandle {
     const cost = upgradeCost(id, level);
     const wrap = el('div', 'shoprow');
     const info = el('div', 'shoprow__info');
-    info.appendChild(el('div', 'shoprow__title', `${def.name} · nivå ${level}/${def.maxLevel}`));
-    info.appendChild(el('div', 'shoprow__now', level > 0 ? def.description(level) : 'Ingen effekt än'));
-    if (!maxed) info.appendChild(el('div', 'shoprow__next', `Nästa: ${def.description(level + 1)}`));
+    info.appendChild(el('div', 'shoprow__title', `${def.name} · level ${level}/${def.maxLevel}`));
+    info.appendChild(el('div', 'shoprow__now', level > 0 ? def.description(level) : 'No effect yet'));
+    if (!maxed) info.appendChild(el('div', 'shoprow__next', `Next: ${def.description(level + 1)}`));
     wrap.appendChild(info);
 
     const action = button(maxed ? 'MAX' : fmt(cost), {
@@ -122,7 +122,7 @@ export function openShop(deps: ShopDeps): OverlayHandle {
           refreshWallet();
           render();
         } else {
-          toast('Inte tillräckligt med Biljetter', 'bad');
+          toast('Not enough scrap', 'bad');
         }
       },
     });
@@ -135,19 +135,19 @@ export function openShop(deps: ShopDeps): OverlayHandle {
   function renderUpgrades(): void {
     const mods = modsFromProfile(deps.profile);
     const note = el('p', 'shop__note');
-    note.textContent = 'Permanent kraft. Gäller varje natt från och med nästa runda.';
+    note.textContent = 'Permanent upgrades. They apply to every run from the next one.';
     body.appendChild(note);
     const summary = el('div', 'shop__mods');
-    summary.textContent = `Skada +${Math.round(mods.damage * 100)}% · HP +${mods.hp} · Fart +${Math.round(
+    summary.textContent = `Damage +${Math.round(mods.damage * 100)}% · HP +${mods.hp} · Speed +${Math.round(
       mods.speed * 100,
-    )}% · Krit +${Math.round(mods.crit * 100)}% · Växel +${Math.round(mods.fares * 100)}%`;
+    )}% · Crit +${Math.round(mods.crit * 100)}% · Scrap +${Math.round(mods.fares * 100)}%`;
     body.appendChild(summary);
     for (const id of UPGRADE_ORDER) body.appendChild(upgradeRow(id));
   }
 
   function renderWeapons(): void {
     body.appendChild(
-      el('p', 'shop__note', 'Lås upp ett startvapen. Vapennycklar kommer från daglådor och paket.'),
+      el('p', 'shop__note', 'Unlock a starting weapon. Weapon keys come from daily crates and packs.'),
     );
     for (const id of WEAPON_ORDER) {
       const def = WEAPONS[id];
@@ -160,11 +160,11 @@ export function openShop(deps: ShopDeps): OverlayHandle {
       wrap.appendChild(info);
 
       if (owned) {
-        const mark = button('UPPLÅST', { variant: 'ghost', disabled: true });
+        const mark = button('UNLOCKED', { variant: 'ghost', disabled: true });
         mark.classList.add('shoprow__action');
         wrap.appendChild(mark);
       } else {
-        const buy = button(`LÅS UPP · ${fmt(WEAPON_UNLOCK_COST)}`, {
+        const buy = button(`UNLOCK · ${fmt(WEAPON_UNLOCK_COST)}`, {
           variant: 'primary',
           onClick: () => {
             if (deps.profile.tickets >= WEAPON_UNLOCK_COST) {
@@ -175,7 +175,7 @@ export function openShop(deps: ShopDeps): OverlayHandle {
               refreshWallet();
               render();
             } else {
-              toast('Inte tillräckligt med Biljetter', 'bad');
+              toast('Not enough scrap', 'bad');
             }
           },
         });
@@ -183,7 +183,7 @@ export function openShop(deps: ShopDeps): OverlayHandle {
         wrap.appendChild(buy);
 
         if (deps.profile.weaponTokens > 0) {
-          const token = button('ANVÄND NYCKEL', {
+          const token = button('USE KEY', {
             variant: 'amber',
             onClick: () => {
               deps.profile.weaponTokens -= 1;
@@ -203,7 +203,7 @@ export function openShop(deps: ShopDeps): OverlayHandle {
   }
 
   function renderColours(): void {
-    body.appendChild(el('p', 'shop__note', 'Kosmetik. Ingen tur, inga lådor — du ser vad du får.'));
+    body.appendChild(el('p', 'shop__note', 'Cosmetic only. No luck, no crates. You see what you get.'));
     for (const colour of COLOURS) {
       const owned = deps.profile.colours.includes(colour.id);
       const active = deps.profile.activeColour === colour.id;
@@ -213,15 +213,15 @@ export function openShop(deps: ShopDeps): OverlayHandle {
       wrap.appendChild(swatch);
       const info = el('div', 'shoprow__info');
       info.appendChild(el('div', 'shoprow__title', colour.name));
-      info.appendChild(el('div', 'shoprow__now', active ? 'Aktiv' : owned ? 'Ägd' : `${fmt(colour.cost)} Biljetter`));
+      info.appendChild(el('div', 'shoprow__now', active ? 'Active' : owned ? 'Owned' : `${fmt(colour.cost)} scrap`));
       wrap.appendChild(info);
 
       if (active) {
-        const mark = button('VALD', { variant: 'ghost', disabled: true });
+        const mark = button('SELECTED', { variant: 'ghost', disabled: true });
         mark.classList.add('shoprow__action');
         wrap.appendChild(mark);
       } else if (owned) {
-        const pick = button('VÄLJ', {
+        const pick = button('SELECT', {
           variant: 'primary',
           onClick: () => {
             buyColour(deps.profile, colour.id);
@@ -242,7 +242,7 @@ export function openShop(deps: ShopDeps): OverlayHandle {
               refreshWallet();
               render();
             } else {
-              toast('Inte tillräckligt med Biljetter', 'bad');
+              toast('Not enough scrap', 'bad');
             }
           },
         });
@@ -258,7 +258,7 @@ export function openShop(deps: ShopDeps): OverlayHandle {
       el(
         'p',
         'shop__note',
-        deps.profile.removeAds ? 'Mellanannonser: AV (köpt). Belönade annonser finns kvar.' : 'Mellanannonser: PÅ.',
+        deps.profile.removeAds ? 'Interstitial ads: OFF (purchased). Rewarded ads stay, always optional.' : 'Interstitial ads: ON.',
       ),
     );
     for (const sku of IAP_ORDER) {
@@ -268,7 +268,7 @@ export function openShop(deps: ShopDeps): OverlayHandle {
       const info = el('div', 'shoprow__info');
       info.appendChild(el('div', 'shoprow__title', product.title));
       info.appendChild(el('div', 'shoprow__now', product.description));
-      if (product.tickets > 0) info.appendChild(el('div', 'shoprow__next', `${fmt(product.tickets)} Biljetter`));
+      if (product.tickets > 0) info.appendChild(el('div', 'shoprow__next', `${fmt(product.tickets)} scrap`));
       wrap.appendChild(info);
 
       const buy = button(formatSek(product.priceSek), {
@@ -282,7 +282,7 @@ export function openShop(deps: ShopDeps): OverlayHandle {
               refreshWallet();
               render();
             } else {
-              toast('Köpet gick inte igenom', 'bad');
+              toast('Purchase failed', 'bad');
               buy.disabled = false;
             }
           });
@@ -293,7 +293,7 @@ export function openShop(deps: ShopDeps): OverlayHandle {
       body.appendChild(wrap);
     }
 
-    const restore = button('ÅTERSTÄLL KÖP', {
+    const restore = button('RESTORE PURCHASES', {
       variant: 'ghost',
       onClick: () => {
         deps.onRestore();
@@ -307,8 +307,8 @@ export function openShop(deps: ShopDeps): OverlayHandle {
     const vip = el('p', 'shop__note shop__note--dim');
     vip.textContent =
       deps.profile.vipUntil > Date.now()
-        ? 'Nattkort aktivt: +25% växel och uppgraderad daglåda.'
-        : 'Nattkort: 24 timmar, +25% växel och uppgraderad daglåda.';
+        ? 'Night pass active: +25% scrap and an upgraded daily crate.'
+        : 'Night pass: 24 hours, +25% scrap and an upgraded daily crate.';
     body.appendChild(vip);
   }
 

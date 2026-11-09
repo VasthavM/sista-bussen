@@ -1,5 +1,5 @@
 /**
- * SISTA BUSSEN service worker — controlled update flow (v3).
+ * ZOMBUS service worker — controlled update flow (v3).
  *
  * Update protocol:
  *  - `install` precaches the app shell but NEVER calls skipWaiting(): a new worker
@@ -44,7 +44,7 @@ self.addEventListener('install', (event) => {
       if (failures.length > 0) {
         // A failed or partial precache must not brick the app: install completes with
         // whatever succeeded, and the fetch handler falls back to the network.
-        console.warn(`Sista Bussen: ${failures.length}/${SHELL.length} precache entries failed`);
+        console.warn(`ZOMBUS: ${failures.length}/${SHELL.length} precache entries failed`);
       }
     })(),
   );
@@ -117,7 +117,7 @@ self.addEventListener('fetch', (event) => {
         if (shell) return shell;
       }
       if (fresh) return fresh;
-      return new Response('Sista Bussen: offline', { status: 503, statusText: 'Offline' });
+      return new Response('ZOMBUS: offline', { status: 503, statusText: 'Offline' });
     })(),
   );
 });

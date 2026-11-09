@@ -14,6 +14,7 @@ import type { AreaEffect, EnemyShot, Projectile, WeaponId, WeaponInstance } from
 import type { Draw } from './draw';
 import { visible } from './draw';
 import { PAL, WEAPON_LOOK } from './palette';
+import { ICON_COLOUR, drawPickupIcon } from './pickups';
 import type { ParticleField } from './particles';
 import { P_EMBER, P_MOTE, P_SPARK } from './particles';
 import { drawGlow, glowSprite, poolSprite } from './sprites';
@@ -189,22 +190,32 @@ function step(pool: Trail[], dt: number): void {
   }
 }
 
-/* --- orbiting weapon (nyckel) ------------------------------------------- */
+/* --- orbiting weapon (Chain Wrench) ------------------------------------------- */
 
-function drawKey(ctx: CanvasRenderingContext2D, s: number, colour: string, ring: string): void {
+/** Chain Wrench: an open-end jaw on the swinging end, a fat handle with a hang hole. */
+function drawWrench(ctx: CanvasRenderingContext2D, s: number, colour: string, ring: string): void {
   ctx.fillStyle = colour;
   ctx.beginPath();
-  ctx.arc(0, 0, s * 0.42, 0, Math.PI * 2);
+  ctx.arc(0, 0, s * 0.48, 0, Math.PI * 2);
   ctx.fill();
+  // Open jaw cut into the head, facing away from the handle.
   ctx.fillStyle = '#05080c';
   ctx.beginPath();
-  ctx.arc(0, 0, s * 0.2, 0, Math.PI * 2);
+  ctx.moveTo(-s * 0.1, -s * 0.2);
+  ctx.lineTo(-s * 0.72, -s * 0.2);
+  ctx.lineTo(-s * 0.72, s * 0.2);
+  ctx.lineTo(-s * 0.1, s * 0.2);
+  ctx.closePath();
   ctx.fill();
+  // Handle.
   ctx.fillStyle = colour;
-  ctx.fillRect(s * 0.3, -s * 0.16, s * 0.95, s * 0.32);
-  ctx.fillRect(s * 0.92, 0, s * 0.2, s * 0.4);
+  ctx.fillRect(s * 0.3, -s * 0.2, s * 1.05, s * 0.4);
+  ctx.fillStyle = '#05080c';
+  ctx.beginPath();
+  ctx.arc(s * 1.2, 0, s * 0.09, 0, Math.PI * 2);
+  ctx.fill();
   ctx.fillStyle = ring;
-  ctx.fillRect(s * 0.62, -s * 0.14, s * 0.12, s * 0.28);
+  ctx.fillRect(s * 0.5, -s * 0.16, s * 0.12, s * 0.32);
 }
 
 function drawOrbit(d: Draw, w: WeaponInstance): void {
@@ -251,28 +262,28 @@ function drawOrbit(d: Draw, w: WeaponInstance): void {
     ctx.moveTo(-Math.cos(0) * keySize * 0.4, 0);
     ctx.lineTo(-Math.cos(0) * keySize * 1.4, 0);
     ctx.stroke();
-    drawKey(ctx, keySize, colour, glowColour);
+    drawWrench(ctx, keySize, colour, glowColour);
     ctx.restore();
     drawGlow(ctx, glowSprite(glowColour), x, y, keySize * (w.evolved ? 2.6 : 1.9), w.evolved ? 0.5 : 0.28);
   }
   ctx.restore();
 }
 
-/* --- projectiles: korv (piercing throw) and vagn (ricochet) -------------- */
+/* --- projectiles: nail gun (piercing) and shopping cart (ricochet) -------------- */
 
-function drawSausage(d: Draw, p: Projectile): void {
+function drawNail(d: Draw, p: Projectile): void {
   const ctx = d.ctx;
   const look = WEAPON_LOOK.korv;
   const ang = Math.atan2(p.vy, p.vx);
   const evolved = p.explodeRadius > 0;
   const colour = evolved ? look.evo : look.core;
-  const len = p.radius * (evolved ? 2.9 : 2.3);
+  const len = p.radius * (evolved ? 3.2 : 2.6);
 
   // Trail.
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   ctx.strokeStyle = rgba(colour, 0.28);
-  ctx.lineWidth = p.radius * 1.4;
+  ctx.lineWidth = p.radius * 1.1;
   ctx.lineCap = 'round';
   ctx.beginPath();
   ctx.moveTo(p.x, p.y);
@@ -283,19 +294,21 @@ function drawSausage(d: Draw, p: Projectile): void {
   ctx.save();
   ctx.translate(p.x, p.y);
   ctx.rotate(ang);
-  ctx.fillStyle = colour;
+  // Shaft, then a flat head at the back and a point out front.
+  ctx.fillStyle = PAL.steel;
   ctx.beginPath();
-  ctx.roundRect(-len * 0.5, -p.radius * 0.62, len, p.radius * 1.24, p.radius * 0.6);
+  ctx.moveTo(len * 0.55, 0);
+  ctx.lineTo(-len * 0.4, -p.radius * 0.28);
+  ctx.lineTo(-len * 0.4, p.radius * 0.28);
+  ctx.closePath();
   ctx.fill();
-  ctx.fillStyle = rgba('#5c250d', 0.75);
-  for (let i = 0; i < 3; i++) {
-    ctx.fillRect(-len * 0.3 + i * len * 0.26, -p.radius * 0.55, 2, p.radius * 1.1);
-  }
+  ctx.fillStyle = colour;
+  ctx.fillRect(-len * 0.52, -p.radius * 0.7, len * 0.16, p.radius * 1.4);
   ctx.strokeStyle = rgba(PAL.amberWarm, 0.8);
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 1.2;
   ctx.beginPath();
-  ctx.moveTo(-len * 0.5, -p.radius * 0.3);
-  ctx.lineTo(len * 0.5, -p.radius * 0.3);
+  ctx.moveTo(-len * 0.3, -p.radius * 0.12);
+  ctx.lineTo(len * 0.4, -p.radius * 0.02);
   ctx.stroke();
   ctx.restore();
 
@@ -462,25 +475,26 @@ export function drawOrbs(d: Draw): void {
     if (!o.active) continue;
     if (!visible(d, o.x, o.y, 40)) continue;
     const magnet = o.magnet;
-    const colour = o.kind === 'change' ? PAL.amberWarm : o.kind === 'fuel' ? PAL.amber : PAL.green;
-    const size = o.kind === 'change' || o.kind === 'fuel' ? 4.6 : 3.4 + Math.min(2, o.value * 0.01);
+    const icon = o.kind === 'change' ? 'scrap' : o.kind === 'fuel' ? 'fuel' : null;
+    const colour = icon ? ICON_COLOUR[icon] : PAL.green;
+    const size = icon ? 4.6 : 3.4 + Math.min(2, o.value * 0.01);
     const pulse = 0.7 + 0.3 * Math.sin(d.t * 8 + o.x * 0.3);
     drawGlow(ctx, glowSprite(colour), o.x, o.y, size * (4 + magnet * 3), 0.35 * pulse);
+    if (icon) {
+      // Scrap and fuel keep their own icon (nut, can) so they read as loot, not XP.
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1;
+      drawPickupIcon(ctx, icon, o.x, o.y, icon === 'fuel' ? 8 : 6.4, icon === 'fuel' ? 0 : d.t * 2.4 + o.x * 0.1);
+      ctx.globalCompositeOperation = 'lighter';
+      continue;
+    }
     ctx.globalAlpha = 0.95;
     ctx.fillStyle = colour;
     ctx.save();
     ctx.translate(o.x, o.y);
-    ctx.rotate(Math.PI * 0.25 + d.t * (o.kind === 'change' ? 2.4 : 1.2));
+    ctx.rotate(Math.PI * 0.25 + d.t * 1.2);
     ctx.fillRect(-size * 0.5, -size * 0.5, size, size);
     ctx.restore();
-    if (o.kind === 'change') {
-      ctx.globalAlpha = 0.9;
-      ctx.strokeStyle = '#5c3d05';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.arc(o.x, o.y, size * 0.55, 0, Math.PI * 2);
-      ctx.stroke();
-    }
   }
   ctx.globalAlpha = 1;
   ctx.globalCompositeOperation = 'source-over';
@@ -593,7 +607,7 @@ export function drawProjectiles(d: Draw): void {
     const p = list[i];
     if (!p.active) continue;
     if (!visible(d, p.x, p.y, 90)) continue;
-    if (p.kind === 'korv') drawSausage(d, p);
+    if (p.kind === 'korv') drawNail(d, p);
     else drawCart(d, p);
   }
 }

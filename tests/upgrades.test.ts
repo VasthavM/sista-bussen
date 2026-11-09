@@ -47,7 +47,7 @@ describe('upgrade pool legality', () => {
     expect(canEvolve(state, 'nyckel')).toBe(true);
     const evolution = candidatePool(state).find((c) => c.id === 'evo:nyckel');
     expect(evolution).toBeDefined();
-    expect(evolution?.name).toBe('Huvudnyckeln');
+    expect(evolution?.name).toBe('Wrecking Chain');
     expect(evolution?.rarity).toBe('evolution');
   });
 
@@ -111,7 +111,7 @@ describe('evolution rules', () => {
       id: 'evo:nyckel',
       kind: 'evolution',
       name: 'Huvudnyckeln',
-      desc: 'Större omloppsbana.',
+      desc: 'Wider orbit.',
       weaponId: 'nyckel',
       level: WEAPON_MAX_LEVEL,
       rarity: 'evolution',

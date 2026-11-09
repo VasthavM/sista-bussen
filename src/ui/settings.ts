@@ -3,6 +3,7 @@
 import type { AudioEngine } from '../audio';
 import type { Profile } from '../meta/save';
 import { button, el, toast } from './kit';
+import { playColdOpen } from './intro';
 import type { OverlayHandle, OverlayHost } from './overlay';
 
 export const REDUCE_MOTION_KEY = 'sista-bussen.reduce-motion.v1';
@@ -40,17 +41,17 @@ export function openSettings(deps: SettingsDeps): OverlayHandle {
   const root = el('div', 'settings sheet');
   let versionNode: HTMLElement | null = null;
   const unsubscribeVersion = deps.subscribeVersion?.((line: string) => {
-    if (versionNode) versionNode.textContent = `SISTA BUSSEN · ${line}`;
+    if (versionNode) versionNode.textContent = `ZOMBUS · ${line}`;
   });
   const handle: OverlayHandle = deps.host.push(root, {
     dismissable: true,
-    label: 'Inställningar',
+    label: 'Settings',
     onClose: () => unsubscribeVersion?.(),
   });
 
   const head = el('div', 'sheet__head');
-  head.appendChild(el('h2', 'sheet__title', 'INSTÄLLNINGAR'));
-  head.appendChild(el('p', 'sheet__sub', 'Inget konto. Inget moln. Bara din telefon.'));
+  head.appendChild(el('h2', 'sheet__title', 'SETTINGS'));
+  head.appendChild(el('p', 'sheet__sub', 'No account. No cloud. Just your phone.'));
   root.appendChild(head);
 
   const body = el('div', 'sheet__body');
@@ -58,7 +59,7 @@ export function openSettings(deps: SettingsDeps): OverlayHandle {
 
   const foot = el('div', 'sheet__footer');
   foot.appendChild(
-    button('STÄNG', {
+    button('CLOSE', {
       variant: 'ghost',
       onClick: () => {
         deps.audio.play('ui_click');
@@ -81,7 +82,7 @@ export function openSettings(deps: SettingsDeps): OverlayHandle {
     info.appendChild(el('div', 'setting__title', title));
     info.appendChild(el('div', 'setting__desc', description));
     wrap.appendChild(info);
-    const btn = button(on ? 'PÅ' : 'AV', {
+    const btn = button(on ? 'ON' : 'OFF', {
       variant: on ? 'primary' : 'ghost',
       onClick: () => {
         deps.audio.play('ui_click');
@@ -97,7 +98,7 @@ export function openSettings(deps: SettingsDeps): OverlayHandle {
     while (body.firstChild) body.removeChild(body.firstChild);
 
     body.appendChild(
-      toggleRow('Ljud', 'Allt ljud är syntetiserat. Inga filer laddas ner.', !deps.profile.settings.muted, (next) => {
+      toggleRow('Sound', 'All sound is synthesised. No files to download.', !deps.profile.settings.muted, (next) => {
         deps.profile.settings.muted = !next;
         deps.audio.setMuted(!next);
         deps.persist();
@@ -107,8 +108,8 @@ export function openSettings(deps: SettingsDeps): OverlayHandle {
 
     body.appendChild(
       toggleRow(
-        'Minska rörelse',
-        'Stänger av skakningar och animationer i gränssnittet.',
+        'Reduce motion',
+        'Turns off shakes and animations in the interface.',
         reduceMotionEnabled(),
         (next) => {
           applyReduceMotion(next);
@@ -118,7 +119,7 @@ export function openSettings(deps: SettingsDeps): OverlayHandle {
     );
 
     body.appendChild(
-      toggleRow('Vibration', 'Korta puffar vid träffar, om telefonen stöder det.', deps.profile.settings.haptics, (next) => {
+      toggleRow('Vibration', 'Short pulses on hits, if your phone supports it.', deps.profile.settings.haptics, (next) => {
         deps.profile.settings.haptics = next;
         deps.persist();
         if (next && typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(12);
@@ -126,14 +127,31 @@ export function openSettings(deps: SettingsDeps): OverlayHandle {
       }),
     );
 
+    const replay = el('div', 'setting');
+    const replayInfo = el('div', 'setting__info');
+    replayInfo.appendChild(el('div', 'setting__title', 'Intro'));
+    replayInfo.appendChild(el('div', 'setting__desc', 'Watch the opening again.'));
+    replay.appendChild(replayInfo);
+    const replayBtn = button('REPLAY', {
+      variant: 'ghost',
+      onClick: () => {
+        deps.audio.play('ui_click');
+        handle.close();
+        playColdOpen();
+      },
+    });
+    replayBtn.classList.add('setting__toggle');
+    replay.appendChild(replayBtn);
+    body.appendChild(replay);
+
     const danger = el('div', 'setting setting--danger');
     const info = el('div', 'setting__info');
-    info.appendChild(el('div', 'setting__title', 'Nollställ sparfil'));
+    info.appendChild(el('div', 'setting__title', 'Reset save'));
     info.appendChild(
-      el('div', 'setting__desc', confirmingReset ? 'Säkert? Alla Biljetter och upplåsta nätter försvinner.' : 'Börjar om från natt 1. Går inte att ångra.'),
+      el('div', 'setting__desc', confirmingReset ? 'Sure? All scrap and unlocked nights are gone.' : 'Starts over from night 1. Cannot be undone.'),
     );
     danger.appendChild(info);
-    const resetBtn = button(confirmingReset ? 'JA, NOLLA' : 'NOLLA', {
+    const resetBtn = button(confirmingReset ? 'YES, RESET' : 'RESET', {
       variant: 'danger',
       onClick: () => {
         deps.audio.play('ui_click');
@@ -145,7 +163,7 @@ export function openSettings(deps: SettingsDeps): OverlayHandle {
         confirmingReset = false;
         handle.close();
         deps.onReset();
-        toast('Sparfilen är nollställd', 'info');
+        toast('Save reset', 'info');
       },
     });
     resetBtn.classList.add('setting__toggle');
@@ -153,10 +171,10 @@ export function openSettings(deps: SettingsDeps): OverlayHandle {
     body.appendChild(danger);
 
     const about = el('div', 'settings__about');
-    versionNode = el('div', 'settings__version', `SISTA BUSSEN · ${deps.version}`);
+    versionNode = el('div', 'settings__version', `ZOMBUS · ${deps.version}`);
     about.appendChild(versionNode);
     about.appendChild(
-      el('p', 'settings__legal', 'Sparfilen ligger i localStorage på den här enheten. Ingen inloggning, ingen server.'),
+      el('p', 'settings__legal', 'Your save lives in localStorage on this device. No login, no server.'),
     );
     body.appendChild(about);
   }

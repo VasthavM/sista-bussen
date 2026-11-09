@@ -50,11 +50,11 @@ export interface ContractsDeps {
 
 export function openContracts(deps: ContractsDeps): OverlayHandle {
   const root = el('div', 'contracts sheet');
-  const handle: OverlayHandle = deps.host.push(root, { dismissable: true, label: 'Kontrakt' });
+  const handle: OverlayHandle = deps.host.push(root, { dismissable: true, label: 'Contracts' });
 
   const head = el('div', 'sheet__head');
-  head.appendChild(el('h2', 'sheet__title', 'KONTRAKT'));
-  head.appendChild(el('p', 'sheet__sub', 'Tre uppdrag per dag. De nollställs vid midnatt.'));
+  head.appendChild(el('h2', 'sheet__title', 'CONTRACTS'));
+  head.appendChild(el('p', 'sheet__sub', 'Three jobs a day. They reset at midnight.'));
   root.appendChild(head);
 
   const body = el('div', 'sheet__body');
@@ -62,7 +62,7 @@ export function openContracts(deps: ContractsDeps): OverlayHandle {
 
   const foot = el('div', 'sheet__footer');
   foot.appendChild(
-    button('STÄNG', {
+    button('CLOSE', {
       variant: 'ghost',
       onClick: () => {
         deps.audio.play('ui_click');
@@ -92,7 +92,7 @@ export function openContracts(deps: ContractsDeps): OverlayHandle {
             deps.audio.play('ui_buy');
             deps.persist();
             deps.onChanged();
-            toast(`+${fmt(result.reward)} Biljetter`, 'good');
+            toast(`+${fmt(result.reward)} scrap`, 'good');
             render();
           },
           onSkip: () => {
@@ -107,7 +107,7 @@ export function openContracts(deps: ContractsDeps): OverlayHandle {
               deps.audio.play('ad_reward');
               deps.persist();
               deps.onChanged();
-              toast('Kontraktet är klart', 'good');
+              toast('Contract complete', 'good');
               render();
             });
           },
@@ -119,7 +119,7 @@ export function openContracts(deps: ContractsDeps): OverlayHandle {
 
     if (adsOfferable(deps.profile)) {
       const pulls = el('div', 'contracts__pulls');
-      pulls.textContent = `Daglådan: ${extraPullsLeft(deps.profile)} extra drag kvar idag.`;
+      pulls.textContent = `Daily crate: ${extraPullsLeft(deps.profile)} extra pulls left today.`;
       body.appendChild(pulls);
     }
   }
@@ -146,21 +146,21 @@ function renderContract(
     el(
       'div',
       'contract__meta',
-      `${fmt(Math.min(contract.progress, contract.target))} / ${fmt(contract.target)} · ${fmt(contract.reward)} Biljetter`,
+      `${fmt(Math.min(contract.progress, contract.target))} / ${fmt(contract.target)} · ${fmt(contract.reward)} scrap`,
     ),
   );
 
   const actions = el('div', 'contract__actions');
   if (contract.claimed) {
-    actions.appendChild(button('UTTAGEN', { variant: 'ghost', disabled: true }));
+    actions.appendChild(button('CLAIMED', { variant: 'ghost', disabled: true }));
   } else if (complete) {
-    actions.appendChild(button('HÄMTA BELÖNING', { variant: 'primary', onClick: handlers.onClaim }));
+    actions.appendChild(button('CLAIM REWARD', { variant: 'primary', onClick: handlers.onClaim }));
   } else if (handlers.skipOffered) {
-    const skip = button('KLARA MED ANNONS', {
+    const skip = button('FINISH WITH AN AD', {
       variant: 'ghost',
       sub: handlers.skipAvailable
-        ? `Belönad annons · ${AD_PLACEMENTS.contract_skip.cap} per dag`
-        : 'Använd idag',
+        ? `Rewarded ad · ${AD_PLACEMENTS.contract_skip.cap} a day`
+        : 'Used today',
       disabled: !handlers.skipAvailable,
       onClick: handlers.onSkip,
     });

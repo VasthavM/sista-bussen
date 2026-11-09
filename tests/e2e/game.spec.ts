@@ -26,7 +26,7 @@ test.describe('Sista Bussen', () => {
     const intro = page.locator('.intro');
     if (await intro.isVisible()) {
       await page.screenshot({ path: 'screenshots/00-intro.png' });
-      await page.getByRole('button', { name: 'UPPFATTAT' }).click();
+      await page.getByRole('button', { name: 'GOT IT' }).click();
       await expect(intro).toHaveCount(0);
       await page.waitForTimeout(250);
     }
@@ -73,7 +73,7 @@ test.describe('Sista Bussen', () => {
     // 5. Force enough XP for a level-up and assert the card UI takes over.
     await page.evaluate(() => window.__game!.grantXp(200));
     await expect(page.locator('.cards .card').first()).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator('.levelup__title')).toContainText('NIVÅ');
+    await expect(page.locator('.levelup__title')).toContainText('LEVEL');
     await expect(page.locator('.cards .card')).toHaveCount(3);
     // Let the card fan-in animation settle before capturing.
     await page.waitForTimeout(700);
