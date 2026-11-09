@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   PASSIVE_MAX_LEVEL,
+  UNLOCKED_EVOLUTION_PASSIVE_LEVEL,
+  UNLOCKED_EVOLUTION_WEAPON_LEVEL,
   WEAPON_MAX_LEVEL,
   applyChoice,
   canEvolve,
@@ -9,7 +11,7 @@ import {
 } from '../src/sim/upgrades';
 import { createRun } from '../src/sim/state';
 import { WEAPONS } from '../src/sim/content';
-import type { SimState } from '../src/sim/types';
+import type { SimState, WeaponId } from '../src/sim/types';
 import { runConfig } from './helpers';
 
 function makeState(seed = 7): SimState {
@@ -130,5 +132,81 @@ describe('evolution rules', () => {
     const upgrade = candidatePool(state).find((c) => c.id === 'weapon:korv')!;
     applyChoice(state, upgrade);
     expect(state.weapons.find((w) => w.id === 'korv')?.level).toBe(2);
+  });
+});
+describe('early evolution unlock', () => {
+  function unlocked(weapons: WeaponId[]): SimState {
+    const cfg = runConfig(7);
+    cfg.mods = { ...cfg.mods, evolutionUnlocks: weapons };
+    return createRun(cfg);
+  }
+
+  it('evolves at weapon level 5 and passive level 2 for an unlocked weapon', () => {
+    const state = unlocked(['nyckel']);
+    state.weapons[0].level = UNLOCKED_EVOLUTION_WEAPON_LEVEL;
+    state.passives.handskar = UNLOCKED_EVOLUTION_PASSIVE_LEVEL;
+    expect(canEvolve(state, 'nyckel')).toBe(true);
+    const pool = candidatePool(state);
+    expect(pool.some((c) => c.id === 'evo:nyckel')).toBe(true);
+    // The next weapon level is still on offer beside the evolution.
+    expect(pool.some((c) => c.id === 'weapon:nyckel')).toBe(true);
+  });
+
+  it('still needs both thresholds', () => {
+    const state = unlocked(['nyckel']);
+    state.weapons[0].level = UNLOCKED_EVOLUTION_WEAPON_LEVEL - 1;
+    state.passives.handskar = UNLOCKED_EVOLUTION_PASSIVE_LEVEL;
+    expect(canEvolve(state, 'nyckel')).toBe(false);
+    state.weapons[0].level = UNLOCKED_EVOLUTION_WEAPON_LEVEL;
+    state.passives.handskar = UNLOCKED_EVOLUTION_PASSIVE_LEVEL - 1;
+    expect(canEvolve(state, 'nyckel')).toBe(false);
+  });
+
+  it('keeps the old rule for a weapon that is not unlocked', () => {
+    const state = unlocked(['korv']);
+    state.weapons[0].level = UNLOCKED_EVOLUTION_WEAPON_LEVEL;
+    state.passives.handskar = UNLOCKED_EVOLUTION_PASSIVE_LEVEL;
+    expect(canEvolve(state, 'nyckel')).toBe(false);
+    state.weapons[0].level = WEAPON_MAX_LEVEL;
+    state.passives.handskar = 3;
+    expect(canEvolve(state, 'nyckel')).toBe(true);
+  });
+
+  it('applies an early evolution and removes its card', () => {
+    const state = unlocked(['nyckel']);
+    state.weapons[0].level = UNLOCKED_EVOLUTION_WEAPON_LEVEL;
+    state.passives.handskar = UNLOCKED_EVOLUTION_PASSIVE_LEVEL;
+    state.pendingLevelUps = 1;
+    applyChoice(state, candidatePool(state).find((c) => c.id === 'evo:nyckel')!);
+    expect(state.weapons[0].evolved).toBe(true);
+    expect(candidatePool(state).some((c) => c.id === 'evo:nyckel')).toBe(false);
+  });
+});
+
+describe('early evolution path in rolls', () => {
+  const pathIds = ['weapon:nyckel', 'passive:handskar'];
+  const share = (weapons: WeaponId[]) => {
+    let hits = 0;
+    for (let seed = 1; seed <= 300; seed++) {
+      const cfg = runConfig(seed);
+      cfg.mods = { ...cfg.mods, evolutionUnlocks: weapons };
+      const state = createRun(cfg);
+      if (rollChoices(state, 3).some((c) => pathIds.includes(c.id))) hits++;
+    }
+    return hits / 300;
+  };
+
+  it('shows more path cards for an unlocked weapon than without the unlock', () => {
+    expect(share(['nyckel'])).toBeGreaterThan(share([]) + 0.1);
+  });
+
+  it('never offers an illegal card for an unlocked weapon', () => {
+    const cfg = runConfig(3);
+    cfg.mods = { ...cfg.mods, evolutionUnlocks: ['nyckel'] };
+    for (let i = 0; i < 50; i++) {
+      const state = createRun(cfg);
+      const legal = new Set(candidatePool(state).map((c) => c.id));
+      for (const c of rollChoices(state, 3)) expect(legal.has(c.id)).toBe(true);
+    }
   });
 });

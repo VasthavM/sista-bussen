@@ -35,6 +35,8 @@ export interface BalanceConfig {
   /** 'random' | 'greedy' | 'rush' (rush the starting weapon) | 'rush:<weaponId>' */
   policy: string;
   mods: Partial<MetaMods>;
+  /** Weapons with the early evolution unlock (MetaMods.evolutionUnlocks). Default none. */
+  unlock?: WeaponId[];
   n: number;
   baseSeed: number;
 }
@@ -83,6 +85,8 @@ export interface ConfigReport {
   finalLevelMedian: number;
   peakEnemies: { median: number; max: number };
   weapons: Record<WeaponId, { ownedRate: number; evolutionRate: number; damageShare: number }>;
+  /** Share of extracted runs in which the starting weapon had evolved. Null when nothing extracted. */
+  startEvolvedOfExtracted: number | null;
 }
 
 // ---------------------------------------------------------------- bot movement
@@ -324,7 +328,7 @@ export function simulateMap(cfg: BalanceConfig, seed: number): RunSummary {
   const config: RunConfig = {
     character: cfg.character,
     weapon: cfg.weapon,
-    mods: { ...EMPTY_MODS, ...cfg.mods },
+    mods: { ...EMPTY_MODS, ...cfg.mods, evolutionUnlocks: cfg.unlock ?? [] },
     map,
   };
   const state = createRun(config);
@@ -446,6 +450,7 @@ export function summarise(cfg: BalanceConfig, runs: RunSummary[]): ConfigReport 
       max: Math.max(...runs.map((r) => r.peakEnemies)),
     },
     weapons,
+    startEvolvedOfExtracted: out.length ? r4(out.filter((r) => r.evolved.includes(cfg.weapon)).length / out.length) : null,
   };
 }
 
@@ -465,9 +470,9 @@ export function renderConfigTable(r: ConfigReport): string {
   const lines = [
     `### Depth ${c.depth}, quota ${c.quota}, ${c.character}, start ${c.weapon}, policy ${c.policy}, N=${r.runs}, seed ${c.baseSeed}`,
     '',
-    '| extraction rate | reached quota | median time to quota | from kills | corr(kills/min, time to quota) | median time to extract | level at extract | peak live enemies (median / max) |',
-    '|---|---|---|---|---|---|---|---|',
-    `| ${pct(r.extractRate)} | ${pct(r.quotaRate)} | ${mmss(r.timeToQuota.median)} (n=${r.timeToQuota.runs}) | ${r.killFuelShare === null ? 'n/a' : pct(r.killFuelShare)} | ${r.killRateVsQuotaTime ?? 'n/a'} | ${mmss(r.timeToExtract.median)} (n=${r.timeToExtract.runs}) | ${lvl} (n=${r.levelAtExtract.runsReached}) | ${r.peakEnemies.median} / ${r.peakEnemies.max} |`,
+    '| extraction rate | reached quota | median time to quota | from kills | corr(kills/min, time to quota) | median time to extract | level at extract | peak live enemies (median / max) | start weapon evolved (of extracted) |',
+    '|---|---|---|---|---|---|---|---|---|',
+    `| ${pct(r.extractRate)} | ${pct(r.quotaRate)} | ${mmss(r.timeToQuota.median)} (n=${r.timeToQuota.runs}) | ${r.killFuelShare === null ? 'n/a' : pct(r.killFuelShare)} | ${r.killRateVsQuotaTime ?? 'n/a'} | ${mmss(r.timeToExtract.median)} (n=${r.timeToExtract.runs}) | ${lvl} (n=${r.levelAtExtract.runsReached}) | ${r.peakEnemies.median} / ${r.peakEnemies.max} | ${r.startEvolvedOfExtracted === null ? 'n/a' : pct(r.startEvolvedOfExtracted)} |`,
     '',
     '| weapon | owned | evolved | damage share |',
     '|---|---|---|---|',
@@ -488,11 +493,11 @@ export function renderBaselineTables(reports: ConfigReport[]): string {
     const first = rs[0].config;
     out.push(`### Start weapon: ${start} (${WEAPONS[start].name})`, '');
     out.push(`Policy \`${first.policy}\`, ${first.character}, N=${first.n} per depth, base seed ${first.baseSeed}.`, '');
-    out.push('| depth | quota | extraction rate | reached quota | time to quota (median) | fuel from kills | corr(kills/min, time to quota) | time to extract (median) | end time median (p10-p90) | median final level | peak enemies (median / max) |');
-    out.push('|---|---|---|---|---|---|---|---|---|---|---|');
+    out.push('| depth | quota | extraction rate | reached quota | time to quota (median) | fuel from kills | corr(kills/min, time to quota) | time to extract (median) | end time median (p10-p90) | median final level | peak enemies (median / max) | start evolved (of extracted) |');
+    out.push('|---|---|---|---|---|---|---|---|---|---|---|---|');
     for (const r of rs) {
       out.push(
-        `| ${r.config.depth} | ${r.config.quota} | ${pct(r.extractRate)} | ${pct(r.quotaRate)} | ${mmss(r.timeToQuota.median)} | ${r.killFuelShare === null ? 'n/a' : pct(r.killFuelShare)} | ${r.killRateVsQuotaTime ?? 'n/a'} | ${mmss(r.timeToExtract.median)} | ${mmss(r.endTime.median)} (${mmss(r.endTime.p10)}-${mmss(r.endTime.p90)}) | ${r.finalLevelMedian} | ${r.peakEnemies.median} / ${r.peakEnemies.max} |`,
+        `| ${r.config.depth} | ${r.config.quota} | ${pct(r.extractRate)} | ${pct(r.quotaRate)} | ${mmss(r.timeToQuota.median)} | ${r.killFuelShare === null ? 'n/a' : pct(r.killFuelShare)} | ${r.killRateVsQuotaTime ?? 'n/a'} | ${mmss(r.timeToExtract.median)} | ${mmss(r.endTime.median)} (${mmss(r.endTime.p10)}-${mmss(r.endTime.p90)}) | ${r.finalLevelMedian} | ${r.peakEnemies.median} / ${r.peakEnemies.max} | ${r.startEvolvedOfExtracted === null ? 'n/a' : pct(r.startEvolvedOfExtracted)} |`,
       );
     }
     out.push('', `Evolved % of all runs / damage share, per weapon:`, '');

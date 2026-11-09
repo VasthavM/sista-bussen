@@ -132,6 +132,7 @@ export function modsFromProfile(profile: Profile): MetaMods {
     armor: upgradeLevel(profile, 'skinn'),
     fares: upgradeLevel(profile, 'vaxling') * 0.08,
     startWeaponLevel: upgradeLevel(profile, 'startnyckel'),
+    evolutionUnlocks: [],
   };
 }
 
