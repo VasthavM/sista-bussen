@@ -1,0 +1,899 @@
+/* ZOMBUS flow: materials, route screen, map HUD panel, summary loot and the menu route card.
+   Loaded after style.css; reuses its palette tokens (--amber, --green, --fluoro, --danger, --line ...). */
+
+/* ---------- material tones: any element carrying data-material gets --mat ---------- */
+
+[data-material='scrap'] {
+  --mat: #f5a524;
+  --mat-rgb: 245, 165, 36;
+}
+
+[data-material='parts'] {
+  --mat: #7fd7ff;
+  --mat-rgb: 127, 215, 255;
+}
+
+[data-material='supplies'] {
+  --mat: #3ddc97;
+  --mat-rgb: 61, 220, 151;
+}
+
+/* Wallet pills: menu header and route screen. */
+.wallet[data-material] {
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px 5px 9px;
+  border-color: rgba(var(--mat-rgb), 0.5);
+  background: linear-gradient(180deg, rgba(var(--mat-rgb), 0.12), rgba(17, 22, 29, 0.9));
+}
+
+.wallet__icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: var(--mat, var(--amber));
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.wallet[data-material] .wallet__value {
+  color: var(--ink);
+  font-size: 15px;
+}
+
+/* Small reward chips on stop cards and the safe-stop strip. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px 2px 5px;
+  border: 1px solid rgba(var(--mat-rgb, 245, 165, 36), 0.45);
+  border-radius: 999px;
+  background: rgba(var(--mat-rgb, 245, 165, 36), 0.12);
+  font: 700 10px/1.3 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.chip__icon,
+.hudmat__icon,
+.lootmat__icon,
+.route__flash-icon,
+.stop__icon,
+.routeline__icon,
+.routeline__mark-icon,
+.hud__fuel-icon,
+.hud__timer-icon,
+.hud__goal-icon,
+.hud__arrow-icon,
+.summary__tag-icon,
+.route__back-icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: 0 0 auto;
+}
+
+.chip__icon {
+  width: 13px;
+  height: 13px;
+  stroke: var(--mat, var(--amber));
+}
+
+/* ---------- route screen ---------- */
+
+.route {
+  gap: 10px;
+}
+
+.route__head {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.route__eyebrow {
+  display: flex;
+  justify-content: space-between;
+  font: 700 10px/1 var(--mono);
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+
+.route__depth {
+  letter-spacing: 0.16em;
+  color: var(--dim);
+}
+
+.route__title {
+  display: flex;
+  align-items: baseline;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.route__title-label {
+  margin-right: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.26em;
+  color: var(--dim);
+}
+
+.route__title-n {
+  font-size: 56px;
+  font-weight: 800;
+  color: var(--amber);
+  text-shadow: 0 0 22px rgba(245, 165, 36, 0.35);
+}
+
+.route__title-of {
+  padding-left: 8px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--dimmer);
+}
+
+/* The segment as a bus line. */
+.routeline {
+  --frac: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(21, 28, 37, 0.85), rgba(13, 18, 24, 0.9));
+}
+
+.routeline__track {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.routeline__track::before,
+.routeline__track::after {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 50%;
+  height: 3px;
+  transform: translateY(-50%);
+  border-radius: 2px;
+}
+
+.routeline__track::before {
+  right: 7px;
+  background: repeating-linear-gradient(90deg, #2c3846 0 7px, transparent 7px 12px);
+}
+
+.routeline__track::after {
+  width: calc((100% - 14px) * var(--frac));
+  background: var(--amber);
+  box-shadow: 0 0 8px rgba(245, 165, 36, 0.6);
+}
+
+.routeline__node {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #3a4655;
+  border-radius: 50%;
+  background: var(--bg);
+}
+
+.routeline__node.is-cleared {
+  border-color: var(--amber);
+  background: var(--amber);
+}
+
+.routeline__node.is-current {
+  width: 24px;
+  height: 24px;
+  border-color: var(--amber);
+  box-shadow: 0 0 0 4px rgba(245, 165, 36, 0.2), 0 0 14px rgba(245, 165, 36, 0.55);
+}
+
+.routeline__node.is-current::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--amber);
+}
+
+.routeline__node.is-boss {
+  width: 28px;
+  height: 28px;
+  border-color: var(--danger);
+  color: var(--danger);
+  background: #1a0e12;
+}
+
+.routeline__node.is-boss.is-current {
+  box-shadow: 0 0 0 4px rgba(255, 77, 94, 0.2), 0 0 14px rgba(255, 77, 94, 0.55);
+}
+
+.routeline__node.is-boss.is-current::after {
+  display: none;
+}
+
+.routeline__icon {
+  width: 16px;
+  height: 16px;
+}
+
+.routeline__legend {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font: 600 10px/1.2 var(--mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.routeline__mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.routeline__mark--start .routeline__mark-icon {
+  color: var(--amber);
+}
+
+.routeline__mark--end .routeline__mark-icon {
+  color: var(--danger);
+}
+
+.routeline__mark-icon {
+  width: 13px;
+  height: 13px;
+}
+
+.routeline--compact {
+  padding: 6px 8px 4px;
+  gap: 4px;
+  border: 0;
+  background: none;
+}
+
+.routeline--compact .routeline__track {
+  height: 22px;
+}
+
+.routeline--compact .routeline__node {
+  width: 11px;
+  height: 11px;
+}
+
+.routeline--compact .routeline__node.is-current {
+  width: 18px;
+  height: 18px;
+}
+
+.routeline--compact .routeline__node.is-current::after {
+  width: 8px;
+  height: 8px;
+}
+
+.routeline--compact .routeline__node.is-boss {
+  width: 22px;
+  height: 22px;
+}
+
+.routeline--compact .routeline__icon {
+  width: 13px;
+  height: 13px;
+}
+
+.route__mats {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.route__mats .wallet {
+  justify-content: center;
+}
+
+.route__flash {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(61, 220, 151, 0.6);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(61, 220, 151, 0.16), rgba(61, 220, 151, 0.04));
+  color: #b6f7d7;
+  animation: flow-pop 240ms cubic-bezier(0.2, 0.9, 0.3, 1);
+  transition: opacity 400ms ease;
+}
+
+.route__flash.is-out {
+  opacity: 0;
+}
+
+.route__flash-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--green);
+}
+
+.route__flash-title {
+  font: 700 11px/1.2 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.route__flash-chips {
+  display: inline-flex;
+  gap: 5px;
+  margin-left: auto;
+}
+
+.route__options {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  touch-action: pan-y;
+}
+
+/* One stop card. --tone is the stop's colour; the whole card is the tap target. */
+.stop {
+  --tone: #9fb3c8;
+  --tone-bg: rgba(159, 179, 200, 0.1);
+  appearance: none;
+  flex: 1 1 100px;
+  max-height: 132px;
+  min-height: 74px;
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px 9px 9px;
+  text-align: left;
+  color: var(--ink);
+  font-family: var(--font);
+  cursor: pointer;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--tone);
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--tone-bg), rgba(13, 18, 24, 0.95) 62%);
+  transition: transform 90ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.stop:active {
+  transform: scale(0.985);
+  box-shadow: 0 0 0 2px var(--tone);
+}
+
+.stop:focus-visible {
+  outline: 2px solid var(--fluoro);
+  outline-offset: 2px;
+}
+
+.stop[data-stop='gas_station'] {
+  --tone: #f5a524;
+  --tone-bg: rgba(245, 165, 36, 0.14);
+}
+
+.stop[data-stop='scrapyard'] {
+  --tone: #ff8a4c;
+  --tone-bg: rgba(255, 138, 76, 0.14);
+}
+
+.stop[data-stop='pharmacy'] {
+  --tone: #3ddc97;
+  --tone-bg: rgba(61, 220, 151, 0.12);
+}
+
+.stop[data-stop='depot'] {
+  --tone: #7fd7ff;
+  --tone-bg: rgba(127, 215, 255, 0.12);
+}
+
+.stop[data-stop='horde'] {
+  --tone: #ff4d5e;
+  --tone-bg: rgba(255, 77, 94, 0.15);
+}
+
+.stop[data-stop='safe'] {
+  --tone: #56e0d0;
+  --tone-bg: rgba(86, 224, 208, 0.12);
+  border-style: dashed;
+  border-left-style: solid;
+}
+
+.stop[data-stop='boss'] {
+  --tone: #ff4d5e;
+  --tone-bg: rgba(255, 77, 94, 0.2);
+  border-color: rgba(255, 77, 94, 0.55);
+  box-shadow: inset 0 0 28px rgba(255, 77, 94, 0.12);
+}
+
+.stop__tile {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--tone);
+  box-shadow: inset 0 0 14px var(--tone-bg);
+}
+
+.stop__icon {
+  width: 32px;
+  height: 32px;
+}
+
+.stop__text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stop__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+
+.stop__name {
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.stop__tag {
+  padding: 1px 6px;
+  border: 1px solid var(--danger);
+  border-radius: 3px;
+  font: 700 9px/1.5 var(--mono);
+  letter-spacing: 0.1em;
+  color: #ffd4d8;
+  background: rgba(255, 77, 94, 0.14);
+}
+
+.stop__blurb {
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--dim);
+}
+
+.stop__rewards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 3px;
+}
+
+.stop__risk {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.stop__risk-label {
+  font: 700 9px/1 var(--mono);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--dimmer);
+}
+
+.pips {
+  display: flex;
+  gap: 4px;
+}
+
+.pip {
+  width: 9px;
+  height: 15px;
+  border: 1.5px solid #3a4655;
+  border-radius: 2px;
+}
+
+.pips[data-danger='1'] .pip.is-on {
+  background: var(--green);
+  border-color: var(--green);
+}
+
+.pips[data-danger='2'] .pip.is-on {
+  background: var(--amber);
+  border-color: var(--amber);
+}
+
+.pips[data-danger='3'] .pip.is-on {
+  background: var(--danger);
+  border-color: var(--danger);
+  box-shadow: 0 0 7px rgba(255, 77, 94, 0.6);
+}
+
+.route__foot {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.route__back {
+  flex: 0 0 auto;
+  width: auto;
+  flex-direction: row;
+  gap: 4px;
+  padding: 0 16px 0 10px;
+}
+
+.route__back-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.route__rule {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--dimmer);
+}
+
+@keyframes flow-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- map HUD: fuel panel, goal strip, bus arrow ---------- */
+
+.hud__panel {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid rgba(245, 165, 36, 0.5);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(8, 11, 15, 0.94), rgba(8, 11, 15, 0.78));
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.hud__panel--met {
+  border-color: rgba(61, 220, 151, 0.75);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45), 0 0 20px rgba(61, 220, 151, 0.28);
+}
+
+.hud__gauge-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.hud__fuel-icon {
+  width: 21px;
+  height: 21px;
+  color: var(--amber);
+}
+
+.hud__fuel {
+  font: 800 24px/1 var(--mono);
+  letter-spacing: 0.02em;
+  color: var(--amber);
+}
+
+.hud__panel--met .hud__fuel,
+.hud__panel--met .hud__fuel-icon {
+  color: var(--green);
+}
+
+.hud__fuel-label {
+  align-self: flex-end;
+  margin-bottom: 2px;
+  font: 700 9px/1 var(--mono);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.hud__timer-wrap {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.hud__timer-icon {
+  width: 15px;
+  height: 15px;
+  color: var(--dim);
+}
+
+.hud__timer {
+  font: 700 16px/1 var(--mono);
+  color: var(--ink);
+}
+
+.hud__gauge {
+  height: 12px;
+  margin-top: 7px;
+  border-color: rgba(234, 241, 248, 0.22);
+  background: rgba(3, 6, 10, 0.85);
+}
+
+.bar--fuel .bar__fill {
+  background: linear-gradient(90deg, #c8811a, var(--amber));
+}
+
+.hud__info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 7px;
+}
+
+.hud__mats {
+  display: flex;
+  gap: 11px;
+}
+
+.hudmat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: 700 13px/1 var(--mono);
+  color: var(--ink);
+}
+
+.hudmat__icon {
+  width: 16px;
+  height: 16px;
+  stroke: var(--mat);
+}
+
+.hud__where {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 600 9px/1 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.hud__goal {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--safe-top) + 114px);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--green);
+  border-radius: 999px;
+  background: rgba(6, 28, 19, 0.94);
+  box-shadow: 0 0 18px rgba(61, 220, 151, 0.35);
+  font: 800 12px/1 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #b6f7d7;
+  transform: translateX(-50%);
+  animation: goal-pulse 1.6s ease-in-out infinite;
+}
+
+.hud__goal[hidden] {
+  display: none;
+}
+
+.hud__goal-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--green);
+}
+
+@keyframes goal-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+
+  50% {
+    opacity: 0.82;
+    transform: translateX(-50%) scale(1.03);
+  }
+}
+
+.hud__arrow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--green);
+  border-radius: 50%;
+  background: rgba(6, 28, 19, 0.92);
+  box-shadow: 0 0 16px rgba(61, 220, 151, 0.5);
+  color: var(--green);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.hud__arrow[hidden] {
+  display: none;
+}
+
+.hud__arrow-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.hud__arrow-ptr {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  margin: -8px 0 0 -6px;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 12px solid var(--green);
+  filter: drop-shadow(0 0 4px rgba(61, 220, 151, 0.8));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud__goal {
+    animation: none;
+  }
+}
+
+/* ---------- summary: gained / lost materials ---------- */
+
+.summary__tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.summary__tag-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.summary__title {
+  text-transform: uppercase;
+}
+
+.summary__loot {
+  padding: 10px 12px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(21, 28, 37, 0.7);
+}
+
+.summary__loot--gained {
+  border-color: rgba(61, 220, 151, 0.45);
+  background: linear-gradient(180deg, rgba(61, 220, 151, 0.1), rgba(21, 28, 37, 0.6));
+}
+
+.summary__loot--lost {
+  border-color: rgba(255, 77, 94, 0.45);
+  background: linear-gradient(180deg, rgba(255, 77, 94, 0.1), rgba(21, 28, 37, 0.6));
+}
+
+.summary__loot-label {
+  font: 700 9px/1 var(--mono);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.summary__loot--gained .summary__loot-label {
+  color: var(--green);
+}
+
+.summary__loot--lost .summary__loot-label {
+  color: #ff9aa1;
+}
+
+.summary__loot-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.lootmat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 4px 7px;
+  border: 1px solid rgba(var(--mat-rgb), 0.35);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.lootmat__icon {
+  width: 24px;
+  height: 24px;
+  stroke: var(--mat);
+}
+
+.lootmat__value {
+  font: 800 22px/1 var(--mono);
+  color: var(--ink);
+}
+
+.summary__loot--lost .lootmat__value {
+  color: #ffb8be;
+}
+
+.lootmat__name {
+  font: 700 9px/1 var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.summary__continue {
+  width: 100%;
+  min-height: 58px;
+}
+
+/* ---------- menu: route card replaces the night picker ---------- */
+
+.menu__card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.menu__card-stat {
+  font: 700 12px/1 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.menu__wallet {
+  flex-wrap: wrap;
+}

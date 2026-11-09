@@ -17,12 +17,15 @@ export interface GameDebugApi {
   endRun(): void;
   /** Fill the fuel gauge and put the player on the bus; the next sim step extracts through the normal path. */
   completeObjective(): void;
+  /** Fill the fuel gauge only (quota met, the player stays away from the bus). */
+  meetQuota(): void;
   /** Set current HP without touching max HP. */
   setHp(n: number): void;
   /** Enemies inside the camera frame right now. */
   onScreenEnemies(): number;
   /** Distance to the closest enemy, Infinity when empty. */
   closestEnemy(): number;
+  /** Skip the route screen and play the first non-safe stop of the current layer. */
   startRun(opts?: Partial<RunSelection>): void;
   setPhase(phase: GamePhase): void;
   /** Add Biljetter to the profile (test/debug grants, never gameplay). */
@@ -32,6 +35,9 @@ export interface GameDebugApi {
     nightUnlocked: number;
     bestNight: number;
     totalRuns: number;
+    materials: { scrap: number; parts: number; supplies: number };
+    route: { depth: number; checkpoint: number; bestDepth: number };
+    routeSeed: number;
     weaponTokens: number;
     upgrades: Record<string, number>;
   };

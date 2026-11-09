@@ -16,15 +16,15 @@ export interface AdPlacementDef {
 export const AD_PLACEMENTS: Record<AdPlacement, AdPlacementDef> = {
   revive: {
     id: 'revive',
-    title: 'BUSSEN ÄR FÖRSENAD',
-    reward: 'Fortsätt rundan med 60% HP',
+    title: 'NOT TODAY',
+    reward: 'Back on your feet with 60% HP',
     cap: 2,
     period: 'run',
   },
   double_fares: {
     id: 'double_fares',
-    title: 'DUBBLA VÄXLET',
-    reward: '2× växel från rundan',
+    title: 'DOUBLE MATERIALS',
+    reward: '2× materials from this map',
     cap: 1,
     period: 'run',
   },

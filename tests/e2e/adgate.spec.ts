@@ -25,7 +25,7 @@ async function storedPlaytime(page: Page, key: string): Promise<number> {
 }
 
 async function startAndDie(page: Page): Promise<void> {
-  await page.evaluate(() => window.__game!.startRun({ night: 1 }));
+  await page.evaluate(() => window.__game!.startRun());
   await expect.poll(() => phase(page)).toBe('run');
   await page.evaluate(() => window.__game!.endRun());
   await expect.poll(() => phase(page)).toBe('summary');
@@ -38,7 +38,7 @@ test('a fresh profile is offered no rewarded ad anywhere', async ({ page }) => {
   await expect(page.locator('[data-screen="menu"]')).toBeVisible();
 
   // Level-up cards: no reroll button.
-  await page.evaluate(() => window.__game!.startRun({ night: 1 }));
+  await page.evaluate(() => window.__game!.startRun());
   await expect.poll(() => phase(page)).toBe('run');
   await page.evaluate(() => window.__game!.grantXp(500));
   await expect.poll(() => phase(page)).toBe('levelup');
@@ -58,12 +58,13 @@ test('a fresh profile is offered no rewarded ad anywhere', async ({ page }) => {
   await expect(page.locator('.summary__offer--hero')).toHaveCount(0);
   await expect(page.locator('.summary__offers')).toHaveCount(0);
   await expect(page.locator('.summary')).not.toContainText(AD_PLACEMENTS.double_fares.title);
-  await expect(page.locator('.summary')).not.toContainText('annons');
-  await page.getByRole('button', { name: 'TILL KUREN' }).click();
+  await expect(page.locator('.summary')).not.toContainText('Rewarded ad');
+  await page.getByRole('button', { name: 'CONTINUE' }).click();
+  await page.getByRole('button', { name: 'Menu', exact: true }).click();
   await expect(page.locator('[data-screen="menu"]')).toBeVisible();
 
   // Crate: the free claim works, the ad pull is not rendered.
-  await page.getByRole('button', { name: 'DAGLÅDA' }).click();
+  await page.getByRole('button', { name: 'DAILY CRATE' }).click();
   await expect(page.locator('.crate__claim')).toBeVisible();
   await expect(page.locator('.crate__extra')).toHaveCount(0);
   await expect(page.locator('.crate')).not.toContainText('annons');
@@ -72,7 +73,7 @@ test('a fresh profile is offered no rewarded ad anywhere', async ({ page }) => {
   await page.getByRole('button', { name: 'STÄNG', exact: true }).click();
 
   // Contracts: no ad skip, no extra-pull teaser.
-  await page.getByRole('button', { name: 'KONTRAKT' }).click();
+  await page.getByRole('button', { name: 'CONTRACTS' }).click();
   await expect(page.locator('.contract').first()).toBeVisible();
   await expect(page.locator('.contracts')).not.toContainText('annons');
   await expect(page.locator('.contracts')).not.toContainText('ANNONS');
@@ -85,7 +86,7 @@ test('playtime accumulates only while running and is persisted', async ({ page }
   await expect(page.locator('[data-screen="menu"]')).toBeVisible();
   expect(await storedPlaytime(page, SAVE_KEY)).toBe(0);
 
-  await page.evaluate(() => window.__game!.startRun({ night: 1 }));
+  await page.evaluate(() => window.__game!.startRun());
   await expect.poll(() => phase(page)).toBe('run');
   await page.waitForTimeout(1500);
 
@@ -121,5 +122,12 @@ test('past the gate the offers come back', async ({ page }) => {
   await expect(page.locator('[data-screen="menu"]')).toBeVisible();
   await startAndDie(page);
   await expect(page.locator('.summary__offer--hero')).toHaveCount(1);
+  // Doubling pays out materials, so it is an extraction offer only; a death loses the haul.
+  await expect(page.locator('.summary__offers button', { hasText: AD_PLACEMENTS.double_fares.title })).toHaveCount(0);
+  await page.evaluate(() => window.__game!.setPhase('menu'));
+  await page.evaluate(() => window.__game!.startRun());
+  await expect.poll(() => phase(page)).toBe('run');
+  await page.evaluate(() => window.__game!.completeObjective());
+  await expect.poll(() => phase(page)).toBe('summary');
   await expect(page.locator('.summary__offers button', { hasText: AD_PLACEMENTS.double_fares.title })).toBeVisible();
 });

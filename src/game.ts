@@ -1,20 +1,23 @@
 /**
- * Run orchestration: fixed-step sim driving, input, hitstop, pause/resume, level-up
- * cards, death/win summary and the payout. Rendering, camera and shake live behind
- * the `Renderer` interface from `src/render`; nothing here draws pixels.
+ * Map orchestration: fixed-step sim driving, input, hitstop, pause/resume, level-up
+ * cards, the end-of-map summary and settling the result into the route. Rendering,
+ * camera and shake live behind the `Renderer` interface from `src/render`; nothing
+ * here draws pixels.
  */
 
 import { track } from './analytics';
 import type { AudioEngine, Sfx } from './audio';
 import type { Renderer, ViewState } from './render';
-import { applyRunOutcome, computePayout, vipActive, type Payout } from './meta/economy';
+import { addMaterials, mapConfigFor, stopInSegment } from './flow';
+import { applyRunOutcome, type Payout } from './meta/economy';
+import { applyMapResult, currentOptions, type RouteState } from './meta/route';
 import type { Profile } from './meta/save';
 import { modsFromProfile } from './meta/shop';
 import { adsOfferable, shouldShowInterstitial } from './monetize/ads';
 import { AD_PLACEMENTS } from './monetize/catalog';
 import { CHARACTERS, ENEMIES, WEAPONS } from './sim/content';
 import { RUN_DURATION } from './sim/curve';
-import { defaultMapConfig } from './sim/objective';
+import type { MapResult, Materials, StopType } from './sim/map';
 import { spawnAtRing } from './sim/spawn';
 import { addXp, clearEvents, computeMapResult, computeRunResult, createRun, revivePlayer } from './sim/state';
 import { NO_INPUT, stepRun, type MoveInput } from './sim/step';
@@ -36,14 +39,16 @@ import { openLevelUp } from './ui/levelup';
 import type { OverlayHandle, OverlayHost } from './ui/overlay';
 import { mountSummary, type SummaryData, type SummaryView } from './ui/summary';
 
+/** Runs no longer pay Biljetter: materials replace them. Counters and contracts still update. */
+const NO_PAYOUT: Payout = { change: 0, doubledChange: 0, tickets: 0, nightBonus: 0, total: 0, multiplier: 1 };
+
 const FIXED_DT = 1 / 60;
 const MAX_STEPS = 5;
 const MAX_FRAME_DT = 0.1;
 
-export type GamePhase = 'menu' | 'run' | 'levelup' | 'summary' | 'pause';
+export type GamePhase = 'menu' | 'route' | 'run' | 'levelup' | 'summary' | 'pause';
 
 export interface RunSelection {
-  night: number;
   character: CharacterId;
   weapon: WeaponId;
 }
@@ -59,6 +64,8 @@ export interface GameDeps {
   persist(): void;
   onProfileChanged(): void;
   onExitToMenu(): void;
+  /** The player left a map (summary CONTINUE or abandon): show the route screen. */
+  onExitToRoute(): void;
   /** The run summary is showing: a waiting app update may be re-offered (never applied). */
   onRunSummary?(): void;
 }
@@ -66,7 +73,7 @@ export interface GameDeps {
 export interface DebugState {
   elapsed: number;
   phase: GamePhase;
-  night: number;
+  depth: number;
   hp: number;
   maxHp: number;
   level: number;
@@ -92,7 +99,7 @@ export class Game {
   private pauseHandle: OverlayHandle | null = null;
 
   private phase: GamePhase = 'menu';
-  private selection: RunSelection = { night: 1, character: 'nattvandraren', weapon: 'nyckel' };
+  private selection: RunSelection = { character: 'nattvandraren', weapon: 'nyckel' };
 
   private raf = 0;
   private lastTs = 0;
@@ -100,7 +107,13 @@ export class Game {
   private hitstop = 0;
 
   private rerollsUsed = 0;
-  private doubleFares = false;
+  private doubled = false;
+  /** Option index on the route that is being played. */
+  private choice = 0;
+  /** The stop type the player picked (a boss stop plays as a horde in the sim). */
+  private playedType: StopType = 'street';
+  /** The route and bank as they were before this map settled, so a revive can undo a death. */
+  private settled: { route: RouteState; materials: Materials; result: MapResult } | null = null;
   private finalized = false;
   private lastPayout: Payout | null = null;
   private reviveOfferedAt = -1;
@@ -130,21 +143,23 @@ export class Game {
 
   // ---- public API ----
 
-  startRun(selection: Partial<RunSelection> = {}): void {
-    this.teardownRun();
+  /**
+   * Play option `choice` of the route's current layer. Returns false (and does nothing) when the
+   * option does not exist or is a safe stop, which never reaches the sim.
+   */
+  startMap(choice: number, selection: Partial<RunSelection> = {}): boolean {
     const profile = this.deps.profile;
-    const night = Math.max(1, Math.min(profile.nightUnlocked, Math.floor(selection.night ?? this.selection.night ?? 1)));
+    const option = currentOptions(profile.route, profile.routeSeed)[choice];
+    if (!option || option.type === 'safe') return false;
+    this.teardownRun();
     const character = selection.character ?? this.selection.character;
     const weapon = selection.weapon ?? this.selection.weapon;
-    this.selection = { night, character, weapon };
+    this.selection = { character, weapon };
+    this.choice = choice;
+    this.playedType = option.type;
 
-    const seed = (Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0;
-    const config: RunConfig = {
-      character,
-      weapon,
-      mods: modsFromProfile(profile),
-      map: defaultMapConfig(seed, night),
-    };
+    const map = mapConfigFor(option, profile.route.depth, profile.routeSeed);
+    const config: RunConfig = { character, weapon, mods: modsFromProfile(profile), map };
     this.state = createRun(config);
     this.hud = mountHud({
       root: this.deps.uiRoot,
@@ -157,24 +172,27 @@ export class Game {
     this.hitstop = 0;
     this.lastTs = 0;
     this.rerollsUsed = 0;
-    this.doubleFares = false;
+    this.doubled = false;
     this.finalized = false;
+    this.settled = null;
     this.lastPayout = null;
     this.reviveOfferedAt = -1;
 
-    track('run_start', {
-      night,
-      character,
-      weapon,
-      seed,
-      tickets: profile.tickets,
-    });
+    // analytics.ts keeps the v1 event shapes for now: `night` carries the depth.
+    track('run_start', { night: map.depth, character, weapon, seed: map.seed, tickets: profile.tickets });
+    return true;
   }
 
-  /** Leave whatever is on screen and go back to Kuren (already finalised or not started). */
+  /** Leave whatever is on screen and go to the menu (already finalised or not started). */
   toMenu(): void {
     this.teardownRun();
     this.phase = 'menu';
+  }
+
+  /** Leave whatever is on screen and go to the route screen. */
+  toRoute(): void {
+    this.teardownRun();
+    this.phase = 'route';
   }
 
   getState(): DebugState {
@@ -183,7 +201,7 @@ export class Game {
       return {
         elapsed: 0,
         phase: this.phase,
-        night: 0,
+        depth: 0,
         hp: 0,
         maxHp: 0,
         level: 0,
@@ -203,7 +221,7 @@ export class Game {
     return {
       elapsed: s.time,
       phase: this.phase,
-      night: s.config.map.depth,
+      depth: s.config.map.depth,
       hp: Math.max(0, Math.round(s.player.hp)),
       maxHp: Math.round(s.player.maxHp),
       level: s.level,
@@ -254,6 +272,13 @@ export class Game {
     s.player.y = s.bus.y;
   }
 
+  /** Debug/e2e: fill the fuel gauge only; the bus stays where it is. */
+  meetQuota(): void {
+    const s = this.state;
+    if (!s || s.status !== 'running') return;
+    s.fuel = Math.max(s.fuel, s.config.map.fuelQuota);
+  }
+
   /** Debug/e2e: set current HP without touching max HP. */
   setHp(hp: number): void {
     const s = this.state;
@@ -293,10 +318,7 @@ export class Game {
       this.deps.onExitToMenu();
       return;
     }
-    if (!this.state) {
-      if (phase === 'run') this.startRun();
-      return;
-    }
+    if (!this.state) return;
     if (phase === 'levelup') {
       if (!this.levelHandle) this.openLevelUp();
       return;
@@ -357,7 +379,7 @@ export class Game {
     this.consumeEvents();
     this.decayShake(dt);
     this.updateAudioIntensity();
-    this.hud?.update(state);
+    this.hud?.update(state, state.quotaMet ? this.deps.renderer.viewBounds() : undefined);
     this.draw(dt, blocked, dimmed);
   };
 
@@ -460,7 +482,7 @@ export class Game {
           break;
         case 'evolve':
           this.deps.audio.play('evolution');
-          this.hud?.announce(event.text || 'UTVECKLING', 'good');
+          this.hud?.announce(event.text || 'EVOLVED', 'good');
           break;
         case 'pickup':
           this.deps.audio.play(event.text === 'xp' ? 'pickup_xp' : 'pickup_change');
@@ -470,11 +492,10 @@ export class Game {
           break;
         case 'horn':
           this.deps.audio.play('horn');
-          this.hud?.announce('BUSSEN VÄNTAR', 'good');
+          this.hud?.announce('FUEL FULL', 'good');
           break;
         case 'win':
           this.deps.audio.play('win');
-          this.hud?.announce('ALLA OMBORD', 'good');
           break;
         case 'revive':
           this.deps.audio.play('ad_reward');
@@ -581,36 +602,61 @@ export class Game {
     this.accumulator = 0;
   }
 
-  // ---- summary / payout ----
+  // ---- summary / settling ----
+
+  /**
+   * Settle the finished map into the route and the bank. Runs once when the summary opens, not when
+   * it closes: a PWA killed on the summary must keep the haul (extracted) and the fall-back (died).
+   * `settled` keeps the previous route and bank so a revive can take the death back.
+   */
+  private settleMap(): void {
+    const state = this.state;
+    if (!state || this.settled || state.status === 'running') return;
+    const profile = this.deps.profile;
+    const result = computeMapResult(state);
+    const update = applyMapResult(profile.route, profile.materials, profile.routeSeed, this.choice, result);
+    this.settled = { route: profile.route, materials: profile.materials, result };
+    profile.route = update.route;
+    profile.materials = update.materials;
+    this.doubled = false;
+    this.deps.persist();
+    this.deps.onProfileChanged();
+  }
+
+  private unsettleMap(): void {
+    if (!this.settled) return;
+    const profile = this.deps.profile;
+    profile.route = this.settled.route;
+    profile.materials = this.settled.materials;
+    this.settled = null;
+    this.deps.persist();
+  }
 
   private summaryData(): SummaryData {
     const state = this.state!;
     const profile = this.deps.profile;
     const won = state.status === 'extracted';
-    const payout = computePayout({
-      change: state.change,
-      night: state.config.map.depth,
-      won,
-      doubleFares: this.doubleFares,
-      vip: vipActive(profile),
-      metaFares: modsFromProfile(profile).fares,
-    });
+    const gained = computeMapResult(state).materials;
+    const factor = this.doubled ? 2 : 1;
     return {
-      won,
-      night: state.config.map.depth,
-      survived: state.time,
+      outcome: won ? 'extracted' : 'died',
+      stop: this.playedType,
+      depth: state.config.map.depth,
+      stopNumber: stopInSegment(state.config.map.depth),
+      nextStopNumber: stopInSegment(profile.route.depth),
+      nextDepth: profile.route.depth,
+      time: state.time,
       kills: state.kills,
-      level: state.level,
       fuel: Math.floor(state.fuel),
       fuelQuota: state.config.map.fuelQuota,
-      materials: computeMapResult(state).materials,
-      change: payout.change,
-      tickets: payout.tickets,
-      nightBonus: payout.nightBonus,
-      doubleFares: this.doubleFares,
+      materials: {
+        scrap: gained.scrap * factor,
+        parts: gained.parts * factor,
+        supplies: gained.supplies * factor,
+      },
+      doubled: this.doubled,
       revivesLeft: Math.max(0, AD_PLACEMENTS.revive.cap - state.revivesUsed),
       revivesUsed: state.revivesUsed,
-      nextNightUnlocked: won,
       adsOfferable: adsOfferable(profile),
     };
   }
@@ -624,7 +670,8 @@ export class Game {
     }
     this.phase = 'summary';
     this.input.reset();
-    this.deps.persist(); // run end: bank playtime even if the app is closed on this screen
+    this.settleMap(); // also persists: run end banks playtime even if the app is closed on this screen
+    this.deps.persist();
     this.deps.onRunSummary?.();
     if (adsOfferable(this.deps.profile) && !won && this.reviveOfferedAt !== state.revivesUsed) {
       this.reviveOfferedAt = state.revivesUsed;
@@ -639,9 +686,8 @@ export class Game {
         host: this.deps.overlay,
         audio: this.deps.audio,
         onRevive: () => void this.acceptRevive(),
-        onDoubleFares: () => void this.acceptDoubleFares(),
-        onRetry: () => this.retry(),
-        onExit: () => void this.quitToMenu(),
+        onDoubleMaterials: () => void this.acceptDoubleMaterials(),
+        onContinue: () => void this.continueToRoute(),
       },
       this.summaryData(),
     );
@@ -667,6 +713,7 @@ export class Game {
     if (!outcome.completed) return;
     if (!revivePlayer(state)) return;
 
+    this.unsettleMap(); // the map goes on: the fall-back was provisional
     track('revive_taken', { night: state.config.map.depth, time: state.time, remaining });
     this.deps.audio.play('ad_reward');
     this.closeSummary();
@@ -675,55 +722,50 @@ export class Game {
     this.phase = 'run';
   }
 
-  private async acceptDoubleFares(): Promise<void> {
+  /** Double the haul: the first copy is banked already, so bank a second one. */
+  private async acceptDoubleMaterials(): Promise<void> {
     const state = this.state;
-    if (!state || this.doubleFares) return;
+    if (!state || !this.settled || this.doubled || state.status !== 'extracted') return;
     this.summaryView?.busy(true);
     const outcome = await this.deps.gate.run('double_fares');
     this.summaryView?.busy(false);
     if (!outcome.completed) return;
-    this.doubleFares = true;
+    const profile = this.deps.profile;
+    profile.materials = addMaterials(profile.materials, this.settled.result.materials);
+    this.doubled = true;
+    this.deps.persist();
+    this.deps.onProfileChanged();
     this.deps.audio.play('ad_reward');
     this.summaryView?.update(this.summaryData());
   }
 
-  private retry(): void {
-    const won = this.state?.status === 'extracted';
-    const previous = this.selection;
+  private async continueToRoute(): Promise<void> {
+    const extracted = this.state?.status === 'extracted';
     this.finalizeRun();
     this.closeSummary();
-    const nextNight = won
-      ? Math.min(this.deps.profile.nightUnlocked, previous.night + 1)
-      : previous.night;
-    this.startRun({ ...previous, night: nextNight });
+    this.toRoute();
+    if (extracted) await this.maybeInterstitial();
+    this.deps.onExitToRoute();
   }
 
-  private async quitToMenu(): Promise<void> {
+  /** Pause sheet "abandon": nothing is settled, the route stays on the same stop. */
+  private async abandonMap(): Promise<void> {
     this.finalizeRun();
     this.closeSummary();
-    this.toMenu();
-    this.setPhase('menu');
-    await this.maybeInterstitial();
-    this.deps.onExitToMenu();
+    this.toRoute();
+    this.deps.onExitToRoute();
   }
 
+  /** Counters and contracts only: materials and the route were settled when the summary opened. */
   private finalizeRun(): Payout | null {
     const state = this.state;
     if (!state) return this.lastPayout;
     if (this.finalized) return this.lastPayout;
     const won = state.status === 'extracted';
     const result = computeRunResult(state);
-    const payout = computePayout({
-      change: result.change,
-      night: result.night,
-      won,
-      doubleFares: this.doubleFares,
-      vip: vipActive(this.deps.profile),
-      metaFares: modsFromProfile(this.deps.profile).fares,
-    });
-    applyRunOutcome(this.deps.profile, result, payout);
+    applyRunOutcome(this.deps.profile, result, NO_PAYOUT);
     this.finalized = true;
-    this.lastPayout = payout;
+    this.lastPayout = NO_PAYOUT;
     this.deps.persist();
     this.deps.onProfileChanged();
     track('run_end', {
@@ -732,11 +774,11 @@ export class Game {
       time: result.time,
       kills: result.kills,
       level: result.level,
-      change: result.change,
+      change: 0,
       revives: result.revivesUsed,
-      doubleFares: this.doubleFares,
+      doubleFares: this.doubled,
     });
-    return payout;
+    return NO_PAYOUT;
   }
 
   private async maybeInterstitial(): Promise<void> {
@@ -775,7 +817,7 @@ export class Game {
         return muted;
       },
       onResume: () => this.closePauseSheet(),
-      onQuit: () => void this.quitToMenu(),
+      onQuit: () => void this.abandonMap(),
     });
   }
 

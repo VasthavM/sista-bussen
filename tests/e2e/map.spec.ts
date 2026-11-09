@@ -14,7 +14,7 @@ declare global {
 
 async function startRun(page: Page): Promise<void> {
   await page.goto('/');
-  await page.evaluate(() => window.__game!.startRun({ night: 1 }));
+  await page.evaluate(() => window.__game!.startRun());
   await expect.poll(() => page.evaluate(() => window.__game!.getState().phase)).toBe('run');
 }
 
@@ -24,7 +24,7 @@ test('a run starts with an empty fuel gauge and a quota', async ({ page }) => {
   expect(s.fuel).toBe(0);
   expect(s.fuelQuota).toBeGreaterThan(0);
   expect(s.quotaMet).toBe(false);
-  await expect(page.locator('[data-hud="fuel"]')).toContainText(`BRÄNSLE 0 / ${s.fuelQuota}`);
+  await expect(page.locator('[data-hud="fuel"]')).toHaveText(`0 / ${s.fuelQuota}`);
 });
 
 test('meeting the quota and touching the bus extracts and shows fuel and materials', async ({ page }) => {
@@ -35,13 +35,12 @@ test('meeting the quota and touching the bus extracts and shows fuel and materia
 
   const summary = page.locator('.summary');
   await expect(summary).toBeVisible();
-  await expect(summary).toContainText('ALLA OMBORD');
+  await expect(summary).toContainText('Extracted');
   const s = await page.evaluate(() => window.__game!.getState());
-  await expect(summary.locator('.bar__label')).toContainText(`BRÄNSLE ${s.fuel} / ${s.fuelQuota}`);
-  await expect(summary.locator('.summary__materials')).toContainText('Skrot');
-  await expect(summary.locator('.summary__materials')).toContainText('Delar');
-  await expect(summary.locator('.summary__materials')).toContainText('Förråd');
-  await page.screenshot({ path: 'screenshots/06-extracted.png' });
+  await expect(summary.locator('.bar__label')).toContainText(`FUEL ${s.fuel} / ${s.fuelQuota}`);
+  for (const name of ['Scrap', 'Parts', 'Supplies']) {
+    await expect(summary.locator('[data-summary="materials"]')).toContainText(name);
+  }
 });
 
 test('dying ends the map without extraction and still shows the summary', async ({ page }) => {
@@ -49,6 +48,6 @@ test('dying ends the map without extraction and still shows the summary', async 
   await page.evaluate(() => window.__game!.endRun());
   await expect.poll(() => page.evaluate(() => window.__game!.getState().phase)).toBe('summary');
   expect(await page.evaluate(() => window.__game!.getState().status)).toBe('dead');
-  await expect(page.locator('.summary')).toContainText('BUSSEN GICK UTAN DIG');
-  await expect(page.locator('.summary__materials')).toBeVisible();
+  await expect(page.locator('.summary')).toContainText('Back to stop 1');
+  await expect(page.locator('[data-summary="materials"]')).toContainText('Lost');
 });

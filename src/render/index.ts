@@ -18,7 +18,7 @@ import { PostFx, drawHurtVeil, drawPauseVeil, resetPost } from './post';
 import { drawGlow, glowSprite } from './sprites';
 import { drawStick } from './stick';
 import { clamp, rgba } from './util';
-import { drawGoalArrow, drawObjective } from './objective';
+import { drawObjective } from './objective';
 import { EffectTrails, WeaponFx, drawAreaEffects, drawEnemyShots, drawOrbs, drawProjectiles, drawWeaponSystems } from './weapons';
 
 export interface StickVisual {
@@ -236,7 +236,6 @@ class RendererImpl implements Renderer {
     this.post.draw(d);
     drawHurtVeil(d);
     drawStick(d);
-    drawGoalArrow(d);
     if (this.fx.boss > 0.01) this.drawBossPulse(d);
     if (state.status !== 'running' && !view.dimmed) this.drawStatusBand(d);
     if (this.fx.evolve > 0.01) this.drawEvolutionBanner(d);
