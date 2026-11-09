@@ -1,4 +1,4 @@
-import type { Profile } from './save';
+import { addScrap, type Profile } from './save';
 
 export function dayKey(now: Date): string {
   const y = now.getFullYear();
@@ -46,7 +46,7 @@ export function claimDailyCrate(profile: Profile, now = new Date()): CrateReward
   const tickets = Math.round(base * (profile.vipUntil > now.getTime() ? 1.5 : 1));
   const weaponTokens = streak % 7 === 0 ? 1 : 0;
 
-  profile.tickets = Math.min(99_999_999, profile.tickets + tickets);
+  addScrap(profile, tickets);
   profile.weaponTokens += weaponTokens;
   profile.daily.lastClaimDay = today;
   profile.daily.streak = streak;
@@ -74,6 +74,6 @@ export function claimExtraCrate(profile: Profile, now = new Date()): { ok: boole
   if (profile.daily.adPulls >= 3) return { ok: false, tickets: 0 };
   profile.daily.adPulls += 1;
   const tickets = 90 + profile.daily.streak * 10;
-  profile.tickets = Math.min(99_999_999, profile.tickets + tickets);
+  addScrap(profile, tickets);
   return { ok: true, tickets };
 }

@@ -2,10 +2,12 @@ import { WEAPON_ORDER } from '../sim/content';
 import type { WeaponId } from '../sim/types';
 import type { Materials } from '../sim/map';
 import { generateContracts, type Contract } from './contracts';
+import { migrateShopLevels } from './migrate-v4';
+import { STARTER_WEAPONS, UPGRADE_NODES } from './upgrades-v2';
 import { MAX_OPTIONS, SEGMENT_LENGTH, createRoute, deriveSegmentSeed, segmentIndexOf, type RouteState } from './route';
 
 export const SAVE_KEY = 'sista-bussen.save.v1';
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 const MAX_DEPTH = 99_999;
 const MAX_MATERIAL = 99_999_999;
@@ -20,8 +22,6 @@ export interface DailyState {
 export interface Profile {
   version: number;
   createdAt: number;
-  /** Biljetter. v3 keeps them for the current game; the upgrade-tree ticket retires them for `materials.scrap`. */
-  tickets: number;
   nightUnlocked: number;
   bestNight: number;
   totalRuns: number;
@@ -30,8 +30,10 @@ export interface Profile {
   wins: number;
   runsSinceInterstitial: number;
   lastInterstitialAt: number | null;
+  /** v4: weapons on the rack. Starts with Nyckel, Grillkorv and Ficklampa; the rest are bought with Scrap. */
   unlockedWeapons: WeaponId[];
   weaponTokens: number;
+  /** v4: upgrade node id -> level (see `UPGRADE_NODES`). Weapon unlocks live in `unlockedWeapons`, not here. */
   upgrades: Record<string, number>;
   ownedSkus: string[];
   vipUntil: number;
@@ -42,7 +44,7 @@ export interface Profile {
   colours: string[];
   activeColour: string;
   lastRun: { night: number; time: number; kills: number } | null;
-  /** v3: banked route materials. */
+  /** v3: banked route materials. v4: Scrap is also the old Biljetter wallet. */
   materials: Materials;
   /** v3: seed of the whole route. Segment seeds derive from it. */
   routeSeed: number;
@@ -60,7 +62,6 @@ export function createFreshProfile(now = Date.now()): Profile {
   return {
     version: SAVE_VERSION,
     createdAt: now,
-    tickets: 0,
     nightUnlocked: 1,
     bestNight: 0,
     totalRuns: 0,
@@ -68,7 +69,7 @@ export function createFreshProfile(now = Date.now()): Profile {
     wins: 0,
     runsSinceInterstitial: 0,
     lastInterstitialAt: null,
-    unlockedWeapons: ['nyckel', 'korv', 'spray', 'ficklampa'],
+    unlockedWeapons: [...STARTER_WEAPONS],
     weaponTokens: 0,
     upgrades: {},
     ownedSkus: [],
@@ -84,6 +85,12 @@ export function createFreshProfile(now = Date.now()): Profile {
     routeSeed,
     route: createRoute(routeSeed),
   };
+}
+
+/** Add (or, negative, spend) Scrap on a profile in place. The old Biljetter wallet is Scrap since v4. */
+export function addScrap(profile: Profile, amount: number): void {
+  const scrap = Math.max(0, Math.min(MAX_MATERIAL, profile.materials.scrap + Math.floor(amount)));
+  profile.materials = { ...profile.materials, scrap };
 }
 
 function asNumber(value: unknown, fallback: number, min: number, max: number): number {
@@ -177,14 +184,16 @@ export function normalizeSave(raw: unknown, now = Date.now()): Profile {
   const legacy = (data.version === undefined || data.version === 0) && !('nightUnlocked' in data);
   const legacyNight = asInt(data.night, 1, 1, 999);
 
-  // v2 -> v3 runs once: v3 saves carry their own materials and route.
+  // v2 -> v3 and v3 -> v4 each run once: later saves carry their own materials, route and upgrade levels.
   const fromBefore3 = typeof data.version !== 'number' || data.version < 3;
+  const fromBefore4 = typeof data.version !== 'number' || data.version < 4;
+  /** Biljetter, the wallet of v1-v3 saves. Gone from v4. */
+  const oldTickets = asInt(data.tickets, 0, 0, MAX_MATERIAL);
 
   const profile: Profile = {
     ...base,
     version: SAVE_VERSION,
     createdAt: asNumber(data.createdAt, now, 0, Number.MAX_SAFE_INTEGER),
-    tickets: asInt(data.tickets, legacy ? 0 : base.tickets, 0, 99_999_999),
     nightUnlocked: legacy
       ? Math.max(1, legacyNight)
       : asInt(data.nightUnlocked, 1, 1, 999),
@@ -200,7 +209,8 @@ export function normalizeSave(raw: unknown, now = Date.now()): Profile {
       typeof data.lastInterstitialAt === 'number' && Number.isFinite(data.lastInterstitialAt)
         ? data.lastInterstitialAt
         : null,
-    unlockedWeapons: asWeaponList(data.unlockedWeapons, base.unlockedWeapons),
+    // Starters are always owned; v3 saves that also had Spray keep it.
+    unlockedWeapons: Array.from(new Set([...STARTER_WEAPONS, ...asWeaponList(data.unlockedWeapons, base.unlockedWeapons)])),
     weaponTokens: asInt(data.weaponTokens, 0, 0, 999),
     ownedSkus: Array.isArray(data.ownedSkus)
       ? data.ownedSkus.filter((v): v is string => typeof v === 'string')
@@ -227,9 +237,22 @@ export function normalizeSave(raw: unknown, now = Date.now()): Profile {
   if (profile.colours.length === 0) profile.colours = ['standard'];
   if (!profile.colours.includes(profile.activeColour)) profile.activeColour = profile.colours[0];
 
+  let refundScrap = 0;
   if (data.upgrades && typeof data.upgrades === 'object' && !Array.isArray(data.upgrades)) {
-    for (const [key, value] of Object.entries(data.upgrades as Record<string, unknown>)) {
-      profile.upgrades[key] = asInt(value, 0, 0, 50);
+    const stored = data.upgrades as Record<string, unknown>;
+    if (fromBefore4) {
+      const old: Record<string, number> = {};
+      for (const [key, value] of Object.entries(stored)) old[key] = asInt(value, 0, 0, 50);
+      const migrated = migrateShopLevels(old);
+      profile.upgrades = migrated.upgrades;
+      refundScrap = migrated.refundScrap;
+    } else {
+      // Only known nodes, clamped to their cap. Weapon unlocks are not stored.
+      for (const n of UPGRADE_NODES) {
+        if (n.effect.kind === 'unlockWeapon') continue;
+        const level = asInt(stored[n.id], 0, 0, n.maxLevel);
+        if (level > 0) profile.upgrades[n.id] = level;
+      }
     }
   }
 
@@ -258,17 +281,22 @@ export function normalizeSave(raw: unknown, now = Date.now()): Profile {
   }
 
   // v3 fields. Pre-v3 saves: Biljetter become Scrap 1:1, nights map to bestDepth, the route starts fresh.
+  // v3 saves held the wallet twice (tickets was live, materials.scrap a snapshot): take the larger, never the sum.
   profile.routeSeed =
     typeof data.routeSeed === 'number' && Number.isFinite(data.routeSeed)
       ? Math.floor(data.routeSeed) >>> 0
       : seedFromCreatedAt(profile.createdAt);
   if (fromBefore3) {
-    profile.materials = { scrap: profile.tickets, parts: 0, supplies: 0 };
+    profile.materials = { scrap: oldTickets, parts: 0, supplies: 0 };
     const bestDepth = Math.max(profile.bestNight, profile.nightUnlocked - 1);
     profile.route = { ...createRoute(profile.routeSeed), bestDepth };
   } else {
     profile.materials = asMaterials(data.materials);
     profile.route = asRoute(data.route, profile.routeSeed, 0);
+  }
+  if (fromBefore4) {
+    const scrap = Math.max(profile.materials.scrap, oldTickets) + refundScrap;
+    profile.materials = { ...profile.materials, scrap: Math.min(MAX_MATERIAL, scrap) };
   }
 
   const lastRun = data.lastRun;

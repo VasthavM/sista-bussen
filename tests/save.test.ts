@@ -28,7 +28,7 @@ describe('save loading', () => {
   it('starts a fresh profile when nothing is stored', () => {
     const result = parseSave(null, NOW);
     expect(result.recovered).toBe(false);
-    expect(result.profile.tickets).toBe(0);
+    expect(result.profile.materials.scrap).toBe(0);
     expect(result.profile.nightUnlocked).toBe(1);
     expect(result.profile.unlockedWeapons).toContain('nyckel');
   });
@@ -37,7 +37,7 @@ describe('save loading', () => {
     const result = parseSave('{"tickets": 999, oops', NOW);
     expect(result.recovered).toBe(true);
     expect(result.reason).toBe('invalid_json');
-    expect(result.profile.tickets).toBe(0);
+    expect(result.profile.materials.scrap).toBe(0);
     expect(result.profile.version).toBe(SAVE_VERSION);
   });
 
@@ -61,14 +61,13 @@ describe('save loading', () => {
       },
       NOW,
     );
-    expect(profile.tickets).toBe(0);
+    expect(profile.materials.scrap).toBe(0);
     expect(profile.nightUnlocked).toBe(1);
     expect(profile.bestNight).toBe(0);
     expect(profile.weaponTokens).toBe(0);
-    expect(profile.unlockedWeapons).toEqual(['nyckel']);
-    expect(profile.upgrades.kraft).toBe(0);
-    expect(profile.upgrades.liv).toBe(3);
-    expect(profile.upgrades.fart).toBe(0);
+    expect(profile.unlockedWeapons).toEqual(['nyckel', 'korv', 'ficklampa']);
+    // Old shop keys migrate to their v4 nodes: kraft -2 and fart 'x' clamp to 0, liv 3.9 floors to 3.
+    expect(profile.upgrades).toEqual({ c_hp: 3 });
     expect(profile.daily.streak).toBe(0);
   });
 
@@ -77,7 +76,7 @@ describe('save loading', () => {
     const result = parseSave(legacy, NOW);
     expect(result.recovered).toBe(false);
     expect(result.profile.version).toBe(SAVE_VERSION);
-    expect(result.profile.tickets).toBe(250);
+    expect(result.profile.materials.scrap).toBe(250);
     expect(result.profile.nightUnlocked).toBe(3);
     expect(result.profile.bestNight).toBe(2);
     expect(result.profile.unlockedWeapons.length).toBeGreaterThan(0);
@@ -87,20 +86,20 @@ describe('save loading', () => {
   it('round-trips a v1 save through storage', () => {
     const storage = fakeStorage();
     const profile = createFreshProfile(NOW);
-    profile.tickets = 1234;
+    profile.materials = { scrap: 1234, parts: 0, supplies: 0 };
     profile.nightUnlocked = 4;
     profile.bestNight = 3;
-    profile.upgrades = { kraft: 4, liv: 2 };
+    profile.upgrades = { w_damage: 4, c_hp: 2 };
     profile.settings.muted = true;
     profile.removeAds = true;
     profile.unlockedWeapons.push('vagn');
     expect(saveProfile(profile, storage)).toBe(true);
 
     const loaded = loadProfile(storage, NOW);
-    expect(loaded.tickets).toBe(1234);
+    expect(loaded.materials.scrap).toBe(1234);
     expect(loaded.nightUnlocked).toBe(4);
     expect(loaded.bestNight).toBe(3);
-    expect(loaded.upgrades.kraft).toBe(4);
+    expect(loaded.upgrades.w_damage).toBe(4);
     expect(loaded.settings.muted).toBe(true);
     expect(loaded.removeAds).toBe(true);
     expect(loaded.unlockedWeapons).toContain('vagn');
@@ -122,10 +121,10 @@ describe('save loading', () => {
   });
 
   it('flags saves from a newer version but still loads them', () => {
-    const future = JSON.stringify({ version: 99, tickets: 42, nightUnlocked: 2 });
+    const future = JSON.stringify({ version: 99, materials: { scrap: 42 }, nightUnlocked: 2 });
     const result = parseSave(future, NOW);
     expect(result.recovered).toBe(true);
     expect(result.reason).toBe('future_version');
-    expect(result.profile.tickets).toBe(42);
+    expect(result.profile.materials.scrap).toBe(42);
   });
 });

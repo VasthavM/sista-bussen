@@ -20,7 +20,8 @@ declare global {
 
 const CHARACTER = 'pensionaren' as const;
 const WEAPON = 'nyckel' as const;
-const UPGRADE = 'liv' as const;
+// Character tree, paid in Supplies since save v4.
+const UPGRADE = 'c_hp' as const;
 
 function digits(text: string | null): number {
   return Number((text ?? '').replace(/[^0-9]/g, ''));
@@ -147,9 +148,9 @@ test('revive, fare doubling and permanent upgrades all move real state', async (
 
   const levelBefore = (await profile(page)).upgrades[UPGRADE] ?? 0;
   const cost = upgradeCost(UPGRADE, levelBefore);
-  await page.evaluate((amount) => window.__game!.grantTickets(amount), cost + 500);
+  await page.evaluate((amount) => window.__game!.grantMaterials({ supplies: amount }), cost + 5);
 
-  const walletBefore = (await profile(page)).tickets;
+  const walletBefore = (await profile(page)).materials.supplies;
   expect(walletBefore).toBeGreaterThanOrEqual(cost);
 
   await page.getByRole('button', { name: 'BUTIK', exact: true }).click();
@@ -160,7 +161,7 @@ test('revive, fare doubling and permanent upgrades all move real state', async (
   expect(digits(await buy.textContent())).toBe(cost);
   await buy.click();
 
-  const walletAfter = (await profile(page)).tickets;
+  const walletAfter = (await profile(page)).materials.supplies;
   const levelAfter = (await profile(page)).upgrades[UPGRADE] ?? 0;
   expect(levelAfter).toBe(levelBefore + 1);
   expect(walletBefore - walletAfter).toBe(cost);

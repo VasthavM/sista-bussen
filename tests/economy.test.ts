@@ -133,7 +133,7 @@ describe('run outcome', () => {
       metaFares: 0,
     });
     applyRunOutcome(profile, runResult({ won: true, night: 1 }), payout);
-    expect(profile.tickets).toBe(payout.total);
+    expect(profile.materials.scrap).toBe(payout.total);
     expect(profile.totalRuns).toBe(1);
     expect(profile.runsSinceInterstitial).toBe(1);
     expect(profile.wins).toBe(1);
@@ -181,7 +181,7 @@ describe('run outcome', () => {
       { sku: 'starter_pack', tickets: 1500, weaponTokens: 1, removesAds: false, vipHours: 0 },
       0,
     );
-    expect(profile.tickets).toBe(1500);
+    expect(profile.materials.scrap).toBe(1500);
     expect(profile.weaponTokens).toBe(1);
     grantIap(
       profile,

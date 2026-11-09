@@ -7,6 +7,7 @@
  */
 
 import type { Game, GamePhase } from './game';
+import type { Materials } from './sim/map';
 import type { RunSelection } from './ui/menu';
 
 export interface GameDebugApi {
@@ -27,6 +28,8 @@ export interface GameDebugApi {
   setPhase(phase: GamePhase): void;
   /** Add Biljetter to the profile (test/debug grants, never gameplay). */
   grantTickets(n: number): void;
+  /** Add Scrap, Parts and Supplies to the profile (test/debug grants, never gameplay). */
+  grantMaterials(m: Partial<Materials>): void;
   profile(): {
     tickets: number;
     nightUnlocked: number;
@@ -34,6 +37,7 @@ export interface GameDebugApi {
     totalRuns: number;
     weaponTokens: number;
     upgrades: Record<string, number>;
+    materials: Materials;
   };
   version: string;
 }

@@ -89,7 +89,7 @@ export function mountMenu(deps: MenuDeps): MenuView {
     wallet.setAttribute('aria-label', 'Ditt innehav');
     const tickets = el('div', 'wallet wallet--tickets');
     tickets.appendChild(el('span', 'wallet__label', 'Biljetter'));
-    tickets.appendChild(el('span', 'wallet__value', fmt(deps.profile.tickets)));
+    tickets.appendChild(el('span', 'wallet__value', fmt(deps.profile.materials.scrap)));
     wallet.appendChild(tickets);
     if (deps.profile.weaponTokens > 0) {
       const tokens = el('div', 'wallet wallet--token');
