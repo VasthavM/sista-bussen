@@ -25,20 +25,20 @@ function hashString(text: string): number {
 }
 
 const ENEMY_LABELS: Record<string, string> = {
-  fyllo: 'fyllon',
-  duva: 'duvor',
-  skugga: 'skuggor',
-  vaktmastare: 'vaktmästare',
-  sparkcykel: 'elsparkcyklar',
+  fyllo: 'Shamblers',
+  duva: 'Crawlers',
+  skugga: 'Runners',
+  vaktmastare: 'Spitters',
+  sparkcykel: 'Chargers',
 };
 
 const WEAPON_LABELS: Record<string, string> = {
-  nyckel: 'Nyckel',
-  korv: 'Grillkorv',
-  telefon: 'Laddad telefon',
-  spray: 'Sprayburk',
-  vagn: 'Kundvagn',
-  ficklampa: 'Ficklampa',
+  nyckel: 'Chain Wrench',
+  korv: 'Nail Gun',
+  telefon: 'Taser',
+  spray: 'Torch Spray',
+  vagn: 'Shopping Cart',
+  ficklampa: 'Flashlight',
 };
 
 /** Deterministic daily contract set. Same day + night = same three contracts. */
@@ -61,7 +61,7 @@ export function generateContracts(dayKey: string, night: number): Contract[] {
     progress: 0,
     reward: 120 + nextInt(rng, 5) * 30,
     claimed: false,
-    text: `Döda ${killPick.count} ${ENEMY_LABELS[killPick.type] ?? killPick.type}`,
+    text: `Kill ${killPick.count} ${ENEMY_LABELS[killPick.type] ?? killPick.type}`,
   });
 
   const weaponPick = (['nyckel', 'korv', 'spray'] as WeaponId[])[nextInt(rng, 3)];
@@ -74,7 +74,7 @@ export function generateContracts(dayKey: string, night: number): Contract[] {
     progress: 0,
     reward: 150 + nextInt(rng, 5) * 25,
     claimed: false,
-    text: `Överlev till ${formatClockTarget(surviveSeconds)} med bara ${WEAPON_LABELS[weaponPick]}`,
+    text: `Survive until ${formatClockTarget(surviveSeconds)} using only the ${WEAPON_LABELS[weaponPick]}`,
   });
 
   if (nextFloat(rng) < 0.55) {
@@ -85,7 +85,7 @@ export function generateContracts(dayKey: string, night: number): Contract[] {
       progress: 0,
       reward: 220 + night * 30,
       claimed: false,
-      text: `Klara natt ${night} utan att missa bussen`,
+      text: `Clear night ${night} and reach the bus`,
     });
   } else {
     const totalTarget = 260 + nextInt(rng, 6) * 30;
@@ -96,7 +96,7 @@ export function generateContracts(dayKey: string, night: number): Contract[] {
       progress: 0,
       reward: 180 + nextInt(rng, 5) * 30,
       claimed: false,
-      text: `Döda ${totalTarget} fiender under en natt`,
+      text: `Kill ${totalTarget} zombies in one night`,
     });
   }
 

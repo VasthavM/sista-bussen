@@ -117,7 +117,7 @@ function spawnBoss(state: SimState, type: EnemyType): void {
   const x = clamp(state.player.x + Math.cos(angle) * 300, 80, WORLD.w - 80);
   const y = clamp(state.player.y + Math.sin(angle) * 300, 80, WORLD.h - 80);
   spawnEnemy(state, type, x, y, true);
-  pushEvent(state, 'boss', x, y, 0, type === 'nattvakt' ? 'NATTVAKTEN' : 'BUSSCHAUFFÖREN');
+  pushEvent(state, 'boss', x, y, 0, type === 'nattvakt' ? 'THE WARDEN' : 'THE CONDUCTOR');
   state.shake = Math.max(state.shake, 10);
 }
 

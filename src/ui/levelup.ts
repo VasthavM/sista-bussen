@@ -22,17 +22,17 @@ export interface LevelUpDeps {
 }
 
 const RARITY_LABEL: Record<UpgradeChoice['rarity'], string> = {
-  evolution: 'UTVECKLING',
-  new: 'NYTT VAPEN',
-  weapon: 'VAPEN',
-  passive: 'PASSIV',
+  evolution: 'EVOLUTION',
+  new: 'NEW WEAPON',
+  weapon: 'WEAPON',
+  passive: 'PASSIVE',
 };
 
 export function openLevelUp(deps: LevelUpDeps): OverlayHandle {
   const root = el('div', 'levelup');
-  root.appendChild(el('div', 'levelup__tag', 'NATTENS VAL'));
-  root.appendChild(el('h2', 'levelup__title', `NIVÅ ${deps.state.level}`));
-  root.appendChild(el('p', 'levelup__sub', 'Välj ett kort. Bussen går ändå.'));
+  root.appendChild(el('div', 'levelup__tag', 'SCAVENGER PICK'));
+  root.appendChild(el('h2', 'levelup__title', `LEVEL ${deps.state.level}`));
+  root.appendChild(el('p', 'levelup__sub', 'Pick a card. The horde keeps coming.'));
 
   const fan = el('div', 'cards');
 
@@ -49,10 +49,10 @@ export function openLevelUp(deps: LevelUpDeps): OverlayHandle {
 
     const levelText =
       choice.rarity === 'evolution'
-        ? 'MAX · UTVECKLAD'
+        ? 'MAX · EVOLVED'
         : choice.rarity === 'new'
-          ? 'NY'
-          : `NIVÅ ${choice.level}`;
+          ? 'NEW'
+          : `LEVEL ${choice.level}`;
     card.appendChild(el('div', 'card__level', levelText));
     card.appendChild(el('p', 'card__desc', choice.desc));
 
@@ -68,15 +68,15 @@ export function openLevelUp(deps: LevelUpDeps): OverlayHandle {
 
   root.appendChild(fan);
 
-  if (!deps.adsOfferable) return deps.host.push(root, { label: 'Välj uppgradering' });
+  if (!deps.adsOfferable) return deps.host.push(root, { label: 'Choose an upgrade' });
 
   const footer = el('div', 'levelup__footer');
-  const reroll = button(deps.adRerollsLeft > 0 ? 'NYA KORT' : 'INGA OMSLAG KVAR', {
+  const reroll = button(deps.adRerollsLeft > 0 ? 'NEW CARDS' : 'NO REROLLS LEFT', {
     variant: 'ghost',
     sub:
       deps.adRerollsLeft > 0
-        ? `Belönad annons · ${deps.adRerollsLeft} av ${deps.adRerollCap} kvar`
-        : `0 av ${deps.adRerollCap} kvar`,
+        ? `Rewarded ad · ${deps.adRerollsLeft} of ${deps.adRerollCap} left`
+        : `0 of ${deps.adRerollCap} left`,
     disabled: deps.adRerollsLeft <= 0,
     onClick: () => {
       reroll.disabled = true;
@@ -87,5 +87,5 @@ export function openLevelUp(deps: LevelUpDeps): OverlayHandle {
   footer.appendChild(reroll);
   root.appendChild(footer);
 
-  return deps.host.push(root, { label: 'Välj uppgradering' });
+  return deps.host.push(root, { label: 'Choose an upgrade' });
 }

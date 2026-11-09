@@ -118,7 +118,7 @@ test.describe('menu loadout', () => {
           .map((n) => n.textContent!.trim()),
       );
       expect(texts.filter((t, i) => texts.indexOf(t) !== i)).toEqual([]);
-      await expect(page.locator('[data-action="start"]')).not.toContainText('Nyckel');
+      await expect(page.locator('[data-action="start"]')).not.toContainText('Chain Wrench');
       await expect(page.locator('.choice__dot')).toHaveCount(0);
       await page.screenshot({ path: `screenshots/menu-${name}.png` });
     });
@@ -217,12 +217,12 @@ test.describe('menu loadout', () => {
     await slot(page, 'character').click();
     await page.locator('.loadout-sheet [data-character="pensionaren"]').click();
     await expect(slot(page, 'weapon')).toContainText(WEAPONS.korv.name);
-    await expect(slot(page, 'character')).toContainText('Pensionären');
+    await expect(slot(page, 'character')).toContainText('Old Timer');
 
     await page.reload();
     await expect(page.locator('[data-screen="menu"]')).toBeVisible();
     await expect(slot(page, 'weapon')).toContainText(WEAPONS.korv.name);
-    await expect(slot(page, 'character')).toContainText('Pensionären');
+    await expect(slot(page, 'character')).toContainText('Old Timer');
     expect(await page.evaluate((k) => JSON.parse(localStorage.getItem(k)!), LOADOUT_KEY)).toEqual({
       character: 'pensionaren',
       weapon: 'korv',
@@ -232,7 +232,7 @@ test.describe('menu loadout', () => {
     await expect.poll(() => page.evaluate(() => window.__game!.getState().phase)).toBe('run');
     const state = await page.evaluate(() => window.__game!.getState());
     expect(state.weapons.map((w) => w.id)).toEqual(['korv']);
-    expect(state.maxHp).toBe(baseMaxHp + 30); // Pensionären: +30 max HP
+    expect(state.maxHp).toBe(baseMaxHp + 30); // Old Timer: +30 max HP
   });
 
   test('keyboard: slot opens with Enter, Escape closes and returns focus, a pick closes the sheet', async ({ page }) => {
@@ -257,6 +257,6 @@ test.describe('menu loadout', () => {
     await page.addInitScript((k) => localStorage.setItem(k, '{nope'), LOADOUT_KEY);
     await openMenu(page);
     await expect(slot(page, 'weapon')).toContainText(WEAPONS.nyckel.name);
-    await expect(slot(page, 'character')).toContainText('Nattvandraren');
+    await expect(slot(page, 'character')).toContainText('Drifter');
   });
 });

@@ -72,9 +72,9 @@ export class AdGate implements AdPresenter {
     this.active = true;
     await this.present(
       {
-        tag: 'ANNONS',
-        title: 'HÅLLPLATSEN PAUSAR',
-        reward: 'Spola förbi när räknaren är klar. Inget köps, inget krävs.',
+        tag: 'AD',
+        title: 'THE ROAD CAN WAIT',
+        reward: 'Skip ahead when the timer ends. Nothing to buy, nothing required.',
         placement: null,
       },
       AD_COUNTDOWN_MS,
@@ -89,7 +89,7 @@ export class AdGate implements AdPresenter {
     const def = AD_PLACEMENTS[placement];
     void this.present(
       {
-        tag: 'BELÖNAD ANNONS',
+        tag: 'REWARDED AD',
         title: def.title,
         reward: def.reward,
         placement,
@@ -103,10 +103,10 @@ export class AdGate implements AdPresenter {
     this.stopTicker();
     if (this.fill) this.fill.style.width = '100%';
     if (this.remain) this.remain.textContent = '0.0';
-    if (this.status) this.status.textContent = '✓ BELÖNING UTBETALD';
+    if (this.status) this.status.textContent = '✓ REWARD PAID OUT';
     if (this.cancel) {
       this.cancel.disabled = true;
-      this.cancel.textContent = 'STÄNG';
+      this.cancel.textContent = 'CLOSE';
     }
     const handle = this.handle;
     this.handle = null;
@@ -131,9 +131,9 @@ export class AdGate implements AdPresenter {
     root.appendChild(tag);
 
     const board = el('div', 'ad__board');
-    board.appendChild(el('div', 'ad__board-line', 'SISTA BUSSEN'));
+    board.appendChild(el('div', 'ad__board-line', 'ZOMBUS'));
     board.appendChild(el('div', 'ad__board-line ad__board-line--dim', content.title));
-    board.appendChild(el('div', 'ad__board-line ad__board-line--small', 'HÅLLPLATS · NATT · REGN'));
+    board.appendChild(el('div', 'ad__board-line ad__board-line--small', 'ROUTE 9 · NIGHT · RAIN'));
     root.appendChild(board);
 
     const reward = el('p', 'ad__reward', content.reward);
@@ -149,10 +149,10 @@ export class AdGate implements AdPresenter {
     meter.appendChild(this.remain);
     root.appendChild(meter);
 
-    this.status = el('div', 'ad__status', 'Räknar ner. Du kan avbryta — då uteblir belöningen.');
+    this.status = el('div', 'ad__status', 'Counting down. You can cancel, but then there is no reward.');
     root.appendChild(this.status);
 
-    this.cancel = button('AVBRYT — INGEN BELÖNING', {
+    this.cancel = button('CANCEL · NO REWARD', {
       variant: 'ghost',
       onClick: () => {
         const placement = this.currentPlacement;
@@ -195,10 +195,10 @@ export class AdGate implements AdPresenter {
       if (this.fill) this.fill.style.width = `${Math.min(100, progress * 100)}%`;
       if (this.remain) this.remain.textContent = (left / 1000).toFixed(1);
       if (left <= 0 && this.status) {
-        this.status.textContent = autoClose ? 'Klart.' : 'Klart. Belöningen delas ut.';
+        this.status.textContent = autoClose ? 'Done.' : 'Done. Reward on its way.';
         if (this.cancel) {
           this.cancel.disabled = true;
-          this.cancel.textContent = 'STÄNG';
+          this.cancel.textContent = 'CLOSE';
         }
       }
       if (autoClose && left <= 0 && !closing) {

@@ -361,7 +361,7 @@ function buildGround(): HTMLCanvasElement {
   g.textBaseline = 'middle';
   g.save();
   g.translate(1115, 470);
-  g.fillText('BUSS', 0, 0);
+  g.fillText('BUS', 0, 0);
   g.restore();
 
   // --- kerb + drains ----------------------------------------------------

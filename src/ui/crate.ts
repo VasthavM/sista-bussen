@@ -27,11 +27,11 @@ export interface CrateDeps {
 
 export function openCrate(deps: CrateDeps): OverlayHandle {
   const root = el('div', 'crate sheet');
-  const handle: OverlayHandle = deps.host.push(root, { dismissable: true, label: 'Daglåda' });
+  const handle: OverlayHandle = deps.host.push(root, { dismissable: true, label: 'Daily crate' });
 
   const head = el('div', 'sheet__head');
-  head.appendChild(el('h2', 'sheet__title', 'DAGLÅDAN'));
-  head.appendChild(el('p', 'sheet__sub', 'En per dag. Dag 7 ger en vapennyckel.'));
+  head.appendChild(el('h2', 'sheet__title', 'DAILY CRATE'));
+  head.appendChild(el('p', 'sheet__sub', 'One a day. Day 7 drops a weapon key.'));
   root.appendChild(head);
 
   const body = el('div', 'sheet__body');
@@ -39,7 +39,7 @@ export function openCrate(deps: CrateDeps): OverlayHandle {
 
   const foot = el('div', 'sheet__footer');
   foot.appendChild(
-    button('STÄNG', {
+    button('CLOSE', {
       variant: 'ghost',
       onClick: () => {
         deps.audio.play('ui_click');
@@ -69,18 +69,18 @@ export function openCrate(deps: CrateDeps): OverlayHandle {
       el(
         'p',
         'crate__note',
-        streak > 0 ? `Streak: ${streak} dag(ar). Nästa dag: dag ${(streak % 7) + 1}.` : 'Ingen streak än. Börja i natt.',
+        streak > 0 ? `Streak: ${streak} day${streak === 1 ? '' : 's'}. Next up: day ${(streak % 7) + 1}.` : 'No streak yet. Start tonight.',
       ),
     );
 
     if (available) {
-      const claim = button('ÖPPNA DAGLÅDAN', {
+      const claim = button('OPEN THE CRATE', {
         variant: 'primary',
-        sub: 'Gratis · en per dag',
+        sub: 'Free · one a day',
         onClick: () => {
           const reward = claimDailyCrate(deps.profile);
           if (!reward.ok) {
-            toast('Redan hämtad idag', 'bad');
+            toast('Already claimed today', 'bad');
             render();
             return;
           }
@@ -94,7 +94,7 @@ export function openCrate(deps: CrateDeps): OverlayHandle {
           deps.persist();
           deps.onChanged();
           toast(
-            `+${fmt(reward.tickets)} Biljetter${reward.weaponTokens > 0 ? ' och 1 vapennyckel' : ''}`,
+            `+${fmt(reward.tickets)} scrap${reward.weaponTokens > 0 ? ' and 1 weapon key' : ''}`,
             'good',
           );
           render();
@@ -103,16 +103,16 @@ export function openCrate(deps: CrateDeps): OverlayHandle {
       claim.classList.add('crate__claim');
       body.appendChild(claim);
     } else {
-      const done = button('DAGENS LÅDA ÄR TÖMD', { variant: 'ghost', disabled: true });
+      const done = button('CRATE EMPTY TODAY', { variant: 'ghost', disabled: true });
       done.classList.add('crate__claim');
       body.appendChild(done);
     }
 
     if (adsOfferable(deps.profile)) {
       const adCap = AD_PLACEMENTS.free_crate.cap;
-      const extra = button('EXTRA DRAG', {
+      const extra = button('EXTRA PULL', {
         variant: 'amber',
-        sub: `Belönad annons · ${pulls} av ${adCap} kvar idag`,
+        sub: `Rewarded ad · ${pulls} of ${adCap} left today`,
         disabled: pulls <= 0 || busy,
         onClick: () => {
           if (busy || pulls <= 0) return;
@@ -125,7 +125,7 @@ export function openCrate(deps: CrateDeps): OverlayHandle {
             }
             const reward = claimExtraCrate(deps.profile);
             if (!reward.ok) {
-              toast('Inga fler drag idag', 'bad');
+              toast('No more pulls today', 'bad');
               render();
               return;
             }
@@ -138,7 +138,7 @@ export function openCrate(deps: CrateDeps): OverlayHandle {
             deps.audio.play('ad_reward');
             deps.persist();
             deps.onChanged();
-            toast(`+${fmt(reward.tickets)} Biljetter`, 'good');
+            toast(`+${fmt(reward.tickets)} scrap`, 'good');
             render();
           });
         },
@@ -148,7 +148,7 @@ export function openCrate(deps: CrateDeps): OverlayHandle {
     }
 
     body.appendChild(
-      el('p', 'crate__note crate__note--dim', `Dagens datum: ${dayKey(new Date())}. Streak bryts om du missar en dag.`),
+      el('p', 'crate__note crate__note--dim', `Today: ${dayKey(new Date())}. Miss a day and the streak resets.`),
     );
   }
 

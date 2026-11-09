@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="sv">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta
@@ -9,12 +9,12 @@
     <meta name="theme-color" content="#0b0e12" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Sista Bussen" />
-    <meta name="description" content="Sista Bussen — överlev till 03:00. Ett survivor-spel på busshållplatsen." />
+    <meta name="apple-mobile-web-app-title" content="ZOMBUS" />
+    <meta name="description" content="ZOMBUS — the bus still runs. A zombie survivor game: scavenge fuel, hold the road, keep moving." />
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" sizes="180x180" />
-    <title>SISTA BUSSEN</title>
+    <title>ZOMBUS</title>
     <style>
       /* Boot screen — inline so the first paint is styled before any module executes.
          The build injects the version text (vite.config.ts); main.ts removes the node as
@@ -154,19 +154,20 @@
         <div class="boot-sign__disc"></div>
         <div class="boot-sign__post"></div>
       </div>
-      <h1 class="boot__title">SISTA BUSSEN</h1>
+      <h1 class="boot__title">ZOMBUS</h1>
       <div id="boot-version" class="boot__version">[SB_BOOT_VERSION]</div>
       <div class="boot__track" aria-hidden="true"><div class="boot__runner"></div></div>
-      <div class="boot__hint">hållplatsen · 23:00–03:00</div>
-      <div class="boot__slow">Laddar långsamt — kontrollera uppkopplingen</div>
+      <div class="boot__hint">find fuel · keep moving</div>
+      <div class="boot__slow">Loading slowly. Check your connection.</div>
     </div>
     <div id="app">
       <div id="stage-frame" class="stage-frame">
-        <canvas id="stage" aria-label="Spelplan: busshållplatsen"></canvas>
+        <canvas id="stage" aria-label="Game field: the road"></canvas>
         <div id="ui" class="ui-root"></div>
       </div>
       <div id="toast-stack" class="toast-stack" aria-live="polite"></div>
     </div>
     <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="/src/coldopen-boot.ts"></script>
   </body>
 </html>

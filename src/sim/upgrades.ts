@@ -80,7 +80,7 @@ export function candidatePool(state: SimState): Candidate[] {
           id: `weapon:${id}`,
           kind: 'weapon',
           name: def.name,
-          desc: `Nivå ${next}: +${Math.round(28 * next)}% skada. ${def.desc}`,
+          desc: `Level ${next}: +${Math.round(28 * next)}% damage. ${def.desc}`,
           weaponId: id,
           level: next,
           rarity: 'weapon',
