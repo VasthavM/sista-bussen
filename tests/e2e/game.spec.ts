@@ -26,7 +26,7 @@ test.describe('Sista Bussen', () => {
     const intro = page.locator('.intro');
     if (await intro.isVisible()) {
       await page.screenshot({ path: 'screenshots/00-intro.png' });
-      await page.getByRole('button', { name: 'GOT IT' }).click();
+      await page.getByRole('button', { name: 'UPPFATTAT' }).click();
       await expect(intro).toHaveCount(0);
       await page.waitForTimeout(250);
     }

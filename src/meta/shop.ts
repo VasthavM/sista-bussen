@@ -97,10 +97,10 @@ export interface ColourDef {
 }
 
 export const COLOURS: ColourDef[] = [
-  { id: 'standard', name: 'Regnjacka', tint: '#7fd7ff', cost: 0 },
-  { id: 'amber', name: 'Natriumgul', tint: '#f5a524', cost: 300 },
-  { id: 'green', name: 'Bussgrön', tint: '#3ddc97', cost: 300 },
-  { id: 'red', name: 'Bromsröd', tint: '#ff4d5e', cost: 450 },
+  { id: 'standard', name: 'Raincoat', tint: '#7fd7ff', cost: 0 },
+  { id: 'amber', name: 'Sodium Yellow', tint: '#f5a524', cost: 300 },
+  { id: 'green', name: 'Bus Green', tint: '#3ddc97', cost: 300 },
+  { id: 'red', name: 'Brake Red', tint: '#ff4d5e', cost: 450 },
 ];
 
 export function buyColour(profile: Profile, id: string): boolean {

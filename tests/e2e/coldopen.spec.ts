@@ -43,6 +43,9 @@ test('plays four frames on first launch, once, then replays from Settings', asyn
   await expect(page.locator('[data-screen="menu"]')).toBeVisible();
   await expect(page.locator('.coldopen')).toHaveCount(0);
 
+  // The first-run intro card (menu.ts, #16's copy) sits over a fresh menu; close it by role, not by its text.
+  await page.locator('[data-screen="intro"] button').click();
+
   // Replay from Settings, skip at once, and the game underneath is untouched.
   await page.locator('.menu__nav-item').nth(3).click();
   await page.getByRole('button', { name: 'REPLAY' }).click();

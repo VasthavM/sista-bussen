@@ -13,6 +13,8 @@ import { COLD_OPEN_FRAMES, INTRO_ITEMS } from '../src/ui/intro';
 const FLOW_TICKET_FILES = new Set([
   '/src/game.ts',
   '/src/main.ts',
+  // Revive and double-scrap titles are #16's rewrite; the rest of catalog.ts waits for it too.
+  '/src/monetize/catalog.ts',
   '/src/ui/hud.ts',
   '/src/ui/menu.ts',
   '/src/ui/route.ts',

@@ -1,11 +1,11 @@
 /**
- * v2 map objective visuals: fuel canisters, the bus and a screen-edge arrow toward the next goal.
+ * v2 map objective visuals: fuel canisters and the bus.
  * Placeholder silhouettes in the existing style (ink outline, rim light, additive glow).
  */
 import { BUS_RADIUS } from '../sim/objective';
 import { PLAYER_RADIUS } from '../sim/state';
 import type { Draw } from './draw';
-import { screenX, screenY, visible } from './draw';
+import { visible } from './draw';
 import { PAL, SPRITE_INK } from './palette';
 import { drawPickupIcon } from './pickups';
 import { drawGlow, glowSprite } from './sprites';
@@ -176,51 +176,4 @@ export function drawObjective(d: Draw): void {
     if (c.active && visible(d, c.x, c.y, 30)) drawCanister(d, c.x, c.y);
   }
   if (visible(d, st.bus.x, st.bus.y, BUS_W)) drawBus(d);
-}
-
-/** Screen pass: an arrow at the viewport edge toward the bus (quota met) or the nearest canister. */
-export function drawGoalArrow(d: Draw): void {
-  const st = d.state;
-  if (st.status !== 'running') return;
-  let tx = st.bus.x;
-  let ty = st.bus.y;
-  if (!st.quotaMet) {
-    let best = Number.POSITIVE_INFINITY;
-    let found = false;
-    for (const c of st.canisters) {
-      if (!c.active) continue;
-      const dist = Math.hypot(c.x - st.player.x, c.y - st.player.y);
-      if (dist < best) {
-        best = dist;
-        tx = c.x;
-        ty = c.y;
-        found = true;
-      }
-    }
-    if (!found) return;
-  }
-  if (visible(d, tx, ty, -20)) return;
-  const ctx = d.ctx;
-  const cx = d.vp.x + d.vp.w / 2;
-  const cy = d.vp.y + d.vp.h / 2;
-  const ang = Math.atan2(screenY(d, ty) - cy, screenX(d, tx) - cx);
-  const rx = d.vp.w / 2 - 26;
-  const ry = d.vp.h / 2 - 90;
-  const k = 1 / Math.hypot(Math.cos(ang) / rx, Math.sin(ang) / ry);
-  ctx.save();
-  ctx.translate(cx + Math.cos(ang) * k, cy + Math.sin(ang) * k);
-  ctx.rotate(ang);
-  ctx.globalAlpha = 0.9;
-  ctx.fillStyle = st.quotaMet ? PAL.green : PAL.amber;
-  ctx.strokeStyle = SPRITE_INK;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(12, 0);
-  ctx.lineTo(-8, -9);
-  ctx.lineTo(-4, 0);
-  ctx.lineTo(-8, 9);
-  ctx.closePath();
-  ctx.stroke();
-  ctx.fill();
-  ctx.restore();
 }
