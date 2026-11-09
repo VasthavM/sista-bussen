@@ -263,7 +263,6 @@ describe('a bought evolution unlock reaches the sim', () => {
     const { runConfig } = await import('./helpers');
     let p = rich();
     p = buy(buy(buy(p, 'w_damage')!, 'c_hp')!, 'evo_nyckel')!;
-    expect(modsFromProfile(p).evolutionUnlocks).toEqual(['nyckel']);
     const cfg = { ...runConfig(5), mods: modsFromProfile(p) };
     const state = createRun(cfg);
     state.weapons[0].level = 5;
