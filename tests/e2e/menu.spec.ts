@@ -254,10 +254,10 @@ test.describe('menu loadout', () => {
     await expect(slot(page, 'weapon')).toBeFocused();
 
     await page.keyboard.press('Enter');
-    await page.locator('.loadout-sheet [data-weapon="spray"]').focus();
+    await page.locator('.loadout-sheet [data-weapon="korv"]').focus();
     await page.keyboard.press('Enter');
     await expect(page.locator('.loadout-sheet')).toHaveCount(0);
-    await expect(slot(page, 'weapon')).toContainText(WEAPONS.spray.name);
+    await expect(slot(page, 'weapon')).toContainText(WEAPONS.korv.name);
     await expect(slot(page, 'weapon')).toBeFocused();
   });
 

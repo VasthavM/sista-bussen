@@ -6,6 +6,11 @@ import type { PassiveId, SimState, UpgradeChoice, WeaponId } from './types';
 export const WEAPON_MAX_LEVEL = 8;
 export const PASSIVE_MAX_LEVEL = 5;
 export const EVOLUTION_PASSIVE_LEVEL = 3;
+/** Early evolution for weapons in `MetaMods.evolutionUnlocks`. */
+export const UNLOCKED_EVOLUTION_WEAPON_LEVEL = 5;
+export const UNLOCKED_EVOLUTION_PASSIVE_LEVEL = 2;
+/** Chance per level-up that one card is a step on the early-evolution path. */
+export const EVOLUTION_PATH_CHANCE = 0.35;
 export const MAX_WEAPONS = 6;
 
 const WEIGHTS = {
@@ -22,9 +27,10 @@ function ownedWeapon(state: SimState, id: WeaponId) {
 export function canEvolve(state: SimState, id: WeaponId): boolean {
   const weapon = ownedWeapon(state, id);
   if (!weapon || weapon.evolved) return false;
-  if (weapon.level < WEAPON_MAX_LEVEL) return false;
+  const unlocked = state.config.mods.evolutionUnlocks.includes(id);
+  if (weapon.level < (unlocked ? UNLOCKED_EVOLUTION_WEAPON_LEVEL : WEAPON_MAX_LEVEL)) return false;
   const def = WEAPONS[id];
-  return (state.passives[def.passive] ?? 0) >= EVOLUTION_PASSIVE_LEVEL;
+  return (state.passives[def.passive] ?? 0) >= (unlocked ? UNLOCKED_EVOLUTION_PASSIVE_LEVEL : EVOLUTION_PASSIVE_LEVEL);
 }
 
 function toChoice(c: Candidate): UpgradeChoice {
@@ -80,7 +86,9 @@ export function candidatePool(state: SimState): Candidate[] {
           rarity: 'weapon',
           weight: WEIGHTS.weaponUpgrade,
         });
-      } else if (canEvolve(state, id)) {
+      }
+      // An unlocked weapon can offer both its next level and its evolution.
+      if (canEvolve(state, id)) {
         out.push({
           id: `evo:${id}`,
           kind: 'evolution',
@@ -115,16 +123,47 @@ export function candidatePool(state: SimState): Candidate[] {
   return out;
 }
 
+/** Cards that move an unlocked, unevolved weapon toward its early evolution. */
+function evolutionPath(state: SimState, pool: Candidate[]): Candidate[] {
+  const out: Candidate[] = [];
+  for (const id of state.config.mods.evolutionUnlocks) {
+    const weapon = ownedWeapon(state, id);
+    if (!weapon || weapon.evolved) continue;
+    const passive = WEAPONS[id].passive;
+    const wanted = new Set<string>();
+    if (weapon.level < UNLOCKED_EVOLUTION_WEAPON_LEVEL) wanted.add(`weapon:${id}`);
+    if ((state.passives[passive] ?? 0) < UNLOCKED_EVOLUTION_PASSIVE_LEVEL) wanted.add(`passive:${passive}`);
+    if (canEvolve(state, id)) wanted.add(`evo:${id}`);
+    for (const c of pool) if (wanted.has(c.id)) out.push(c);
+  }
+  return out;
+}
+
 /** Draw `count` distinct legal cards, weighted evolution > new weapon > weapon upgrade > passive. */
 export function rollChoices(state: SimState, count = 3): UpgradeChoice[] {
   const pool: Candidate[] = candidatePool(state);
   const picks: UpgradeChoice[] = [];
 
+  // Early-evolution weapons: every level-up shows one card on the way to the evolution
+  // (the next weapon level, the passive, or the evolution itself), so the unlock is reachable
+  // inside one map. Runs without an unlock skip this and roll exactly as before.
+  const path = evolutionPath(state, pool);
+  if (path.length > 0 && count > 0 && nextFloat(state.rng) < EVOLUTION_PATH_CHANCE) {
+    const step = pickWeighted(
+      state.rng,
+      path.map((c) => ({ value: c, weight: c.weight })),
+    );
+    if (step) {
+      picks.push(toChoice(step));
+      pool.splice(pool.findIndex((c) => c.id === step.id), 1);
+    }
+  }
+
   // Build agency: most level-ups contain at least one upgrade for a weapon the
   // player already owns, so a focused build can actually reach its evolution.
   const focus = pool.filter((c) => c.rarity === 'evolution' || c.rarity === 'weapon');
   const deepest = state.weapons.reduce((max, w) => Math.max(max, w.level), 0);
-  if (focus.length > 0 && count > 0 && deepest >= 4 && nextFloat(state.rng) < 0.7) {
+  if (picks.length === 0 && focus.length > 0 && count > 0 && deepest >= 4 && nextFloat(state.rng) < 0.7) {
     const forced = pickWeighted(
       state.rng,
       focus.map((c) => ({ value: c, weight: c.weight })),

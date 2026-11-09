@@ -11,11 +11,13 @@ Design: `specs/design/v2-last-bus.md` (approved 2026-11-09). Contract: `specs/ti
 | # | Ticket | status | mode | runs (after) | owner / branch |
 |---|---|---|---|---|---|
 | 11 | Balance harness + baseline | done | solo | — | `totto/11-balance` @ `7d988a3`; being merged into `totto/v2` |
-| 12 | Sim: fuel quota, materials, bus extraction (unfreezes sim) | merging | solo | 11 | `totto/12-sim` @ `701f7b6`: kill-driven fuel (62% from kills), quota `92 + 8*(depth-1)`, depth-1 extraction within ±8 pts of old night 1, combat identical. Open for v2-8: pacing (~3:45 to quota) vs a shorter map |
+| 12 | Sim: fuel quota, materials, bus extraction (unfreezes sim) | done (browser-checked 2026-11-09, `/tmp/chk12/shots/`) | solo | 11 | `totto/12-sim` @ `701f7b6`: kill-driven fuel (62% from kills), quota `92 + 8*(depth-1)`, depth-1 extraction within ±8 pts of old night 1, combat identical. Open for v2-8: pacing (~3:45 to quota) vs a shorter map |
 | 13 | Route generator, checkpoints, save v3 | done | solo | — | `totto/13-route` @ `ab59aa0` (104/104 unit, 38/38 e2e, docker ok); merging into `totto/v2`. Open: layers vs real branching paths (Max) |
-| v2-3 | Upgrade trees: character / weapons / bus from 3 materials + combos | planned | solo | 12, 13 | ticket after wave 1 |
-| v2-4 | UI: route map, bus hub, map HUD (fuel, extract arrow), end-of-map summary | planned | solo/team | 12, 13 | |
-| v2-5 | Reskin to zombies + English copy + ZOMBUS branding + cold open/radio lore | planned | solo | 12 | can run beside v2-3 |
+| 14 | Weapon balance + reachable evolutions (numbers only) | in-progress | solo | 12 | `w14-weapons`, `totto/14-weapons` off `04c16e7`, port 4186 |
+| 15 | Upgrade trees from 3 materials + combos, save v4 | done, merging | solo | 12, 13 | `totto/15-upgrades` @ `24977a2` (155/155 unit, 41/41 e2e, docker ok). New sim effects (shield, magnet, turret, plow, quota, attack speed, projectiles, pierce) not read by the sim yet. Tests written after code (process miss) |
+| 16 | Playable route loop: route screen, fuel HUD, summaries | in-progress | solo | 12, 13 | `w16-flow`, `totto/16-flow`, port 4188 |
+| 17 | Zombie reskin, English copy + weapon names, ZOMBUS branding, cold open | in-progress | solo | 12 | `w17-reskin`, `totto/17-reskin`, port 4189 |
+| v2-hub | Bus hub UI for upgrades (#15) | planned | solo | 15, 16 | wave 3 |
 | v2-6 | Bosses every 10 maps | planned | solo | 12, 13 | |
 | v2-7 | Monetization v2: rewarded remap, interstitials, StoreKit IAP | planned | solo | 8, v2-4 | waits on Apple verification |
 | v2-8 | Balance pass per depth band + human playtest | planned | solo | all | |
@@ -29,6 +31,14 @@ Design: `specs/design/v2-last-bus.md` (approved 2026-11-09). Contract: `specs/ti
 | 4 | Tune nights 4+ | superseded by v2-8 |
 | 3 | Art pass | folded into v2-5 |
 | 2 | Real ads + billing | split into v2-7 |
+
+## Conflict map, wave 2
+
+- #14: numbers in `src/sim/content.ts`, `src/sim/upgrades.ts`, `MetaMods.evolutionUnlocks` in `src/sim/types.ts`, `tools/balance*`, `specs/balance/`.
+- #15: `src/meta/upgrades-v2.ts` (new), `src/meta/save.ts`, the old shop's read path only.
+- #16: `src/ui/{route,hud,summary,menu}.ts`, `src/game.ts`, `src/main.ts`, e2e flow specs.
+- #17: `src/render/**`, string fields in `src/sim/content.ts`, other `src/ui/*`, `index.html`, manifest, icons.
+- Known overlaps the merger resolves: `content.ts` (#14 numbers vs #17 strings), shop UI (#15 read path vs #17 copy), `game.ts` mods wiring (#15 vs #16). Merge order: #14, #15, #17, #16.
 
 ## Conflict map, wave 1
 

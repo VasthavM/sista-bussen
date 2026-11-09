@@ -14,6 +14,7 @@ import {
   SHOP_UPGRADES,
   UPGRADE_ORDER,
   upgradeCost,
+  unlockWeaponWithTickets,
   upgradeLevel,
   WEAPON_UNLOCK_COST,
   type UpgradeId,
@@ -45,11 +46,15 @@ const TABS: Array<{ id: ShopTab; label: string }> = [
 export function openShop(deps: ShopDeps): OverlayHandle {
   let tab: ShopTab = deps.initialTab ?? 'upgrades';
 
+  const walletText = (): string => {
+    const m = deps.profile.materials;
+    return `${fmt(m.scrap)} Scrap · ${fmt(m.parts)} Parts · ${fmt(m.supplies)} Supplies`;
+  };
   const root = el('div', 'shop sheet');
   const head = el('div', 'shop__head');
   head.appendChild(el('h2', 'sheet__title', 'BUTIKEN'));
   const wallet = el('div', 'shop__wallet');
-  const balance = el('span', 'shop__balance', `${fmt(deps.profile.tickets)} Biljetter`);
+  const balance = el('span', 'shop__balance', walletText());
   wallet.appendChild(balance);
   if (deps.profile.weaponTokens > 0) {
     wallet.appendChild(el('span', 'shop__tokens', `${fmt(deps.profile.weaponTokens)} vapennycklar`));
@@ -78,7 +83,7 @@ export function openShop(deps: ShopDeps): OverlayHandle {
   const handle: OverlayHandle = deps.host.push(root, { dismissable: true, label: 'Butik' });
 
   function refreshWallet(): void {
-    balance.textContent = `${fmt(deps.profile.tickets)} Biljetter`;
+    balance.textContent = walletText();
     deps.onChanged();
   }
 
@@ -122,12 +127,12 @@ export function openShop(deps: ShopDeps): OverlayHandle {
           refreshWallet();
           render();
         } else {
-          toast('Inte tillräckligt med Biljetter', 'bad');
+          toast('Inte tillräckligt med material', 'bad');
         }
       },
     });
     action.classList.add('shoprow__action');
-    if (!maxed && deps.profile.tickets < cost) action.classList.add('btn--short');
+    if (!maxed && !canBuyUpgrade(deps.profile, id)) action.classList.add('btn--short');
     wrap.appendChild(action);
     return wrap;
   }
@@ -167,15 +172,13 @@ export function openShop(deps: ShopDeps): OverlayHandle {
         const buy = button(`LÅS UPP · ${fmt(WEAPON_UNLOCK_COST)}`, {
           variant: 'primary',
           onClick: () => {
-            if (deps.profile.tickets >= WEAPON_UNLOCK_COST) {
-              deps.profile.tickets -= WEAPON_UNLOCK_COST;
-              deps.profile.unlockedWeapons.push(id);
+            if (unlockWeaponWithTickets(deps.profile, id)) {
               deps.audio.play('ui_buy');
               deps.persist();
               refreshWallet();
               render();
             } else {
-              toast('Inte tillräckligt med Biljetter', 'bad');
+              toast('Inte tillräckligt med material', 'bad');
             }
           },
         });
@@ -242,7 +245,7 @@ export function openShop(deps: ShopDeps): OverlayHandle {
               refreshWallet();
               render();
             } else {
-              toast('Inte tillräckligt med Biljetter', 'bad');
+              toast('Inte tillräckligt med material', 'bad');
             }
           },
         });

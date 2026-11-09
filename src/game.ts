@@ -179,7 +179,7 @@ export class Game {
     this.reviveOfferedAt = -1;
 
     // analytics.ts keeps the v1 event shapes for now: `night` carries the depth.
-    track('run_start', { night: map.depth, character, weapon, seed: map.seed, tickets: profile.tickets });
+    track('run_start', { night: map.depth, character, weapon, seed: map.seed, tickets: profile.materials.scrap });
     return true;
   }
 

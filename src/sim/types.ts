@@ -25,6 +25,8 @@ export interface MetaMods {
   armor: number;
   fares: number;
   startWeaponLevel: number;
+  /** Weapons whose evolution unlocks early: weapon level 5 and passive level 2 instead of 8 and 3. */
+  evolutionUnlocks: readonly WeaponId[];
 }
 
 export const EMPTY_MODS: MetaMods = {
@@ -36,6 +38,7 @@ export const EMPTY_MODS: MetaMods = {
   armor: 0,
   fares: 0,
   startWeaponLevel: 0,
+  evolutionUnlocks: [],
 };
 
 export interface RunConfig {
