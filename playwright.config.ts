@@ -16,7 +16,7 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['iPhone 13'], browserName: 'chromium' } },
+    { name: 'chromium', use: { ...devices['iPhone 13'], browserName: 'chromium', launchOptions: { args: ['--mute-audio'] } } },
     // The iOS engine: the update flow must hold under WebKit too (#10). Only the update spec runs here.
     { name: 'webkit', testMatch: 'update.spec.ts', use: { ...devices['iPhone 13'] } },
   ],
