@@ -6,21 +6,6 @@ import { REWARDED_ONBOARDING_FREE_MINUTES } from '../src/monetize/catalog';
 import { CHARACTERS, ENEMIES, PASSIVES, WEAPONS } from '../src/sim/content';
 import { COLD_OPEN_FRAMES, INTRO_ITEMS } from '../src/ui/intro';
 
-/**
- * Files the flow ticket (#16) still owns and translates itself. Delete an entry
- * the moment #16 merges and its file is English; the list must only ever shrink.
- */
-const FLOW_TICKET_FILES = new Set([
-  '/src/game.ts',
-  '/src/main.ts',
-  // Revive and double-scrap titles are #16's rewrite; the rest of catalog.ts waits for it too.
-  '/src/monetize/catalog.ts',
-  '/src/ui/hud.ts',
-  '/src/ui/menu.ts',
-  '/src/ui/route.ts',
-  '/src/ui/summary.ts',
-]);
-
 const SWEDISH_LETTERS = /[åäöÅÄÖ]/;
 
 /** Everything a player can read: the game source, the shell page and the manifest. */
@@ -42,24 +27,12 @@ function offendingLines(text: string): string[] {
 }
 
 describe('English only', () => {
-  it('has no å, ä or ö in user-facing strings outside the flow ticket files', () => {
+  it('has no å, ä or ö in user-facing strings', () => {
     const report: string[] = [];
     for (const [file, text] of Object.entries(FILES)) {
-      if (FLOW_TICKET_FILES.has(file)) continue;
       for (const hit of offendingLines(text)) report.push(`${file}:${hit}`);
     }
     expect(report).toEqual([]);
-  });
-
-  it('keeps the allowlist honest: no entry is already English', () => {
-    for (const rel of FLOW_TICKET_FILES) {
-      // route.ts only exists once #16 lands; until then there is nothing to check.
-      const text = FILES[rel];
-      if (text === undefined) continue;
-      const hits = offendingLines(text);
-      // A file that is already English must leave the list, so the list only shrinks.
-      expect(hits.length, `${rel} is English now: remove it from FLOW_TICKET_FILES`).toBeGreaterThan(0);
-    }
   });
 });
 

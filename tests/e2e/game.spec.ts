@@ -8,7 +8,7 @@ declare global {
   }
 }
 
-test.describe('Sista Bussen', () => {
+test.describe('Zombus', () => {
   test('boots, plays, levels up, and produces screenshots', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
@@ -17,7 +17,7 @@ test.describe('Sista Bussen', () => {
 
     // 1. Menu renders with the Kuren signage and the start action.
     await expect(page.locator('[data-screen="menu"]')).toBeVisible();
-    await expect(page.locator('.menu__title')).toHaveText('SISTA BUSSEN');
+    await expect(page.locator('.menu__title')).toHaveText('ZOMBUS');
     await expect(page.locator('[data-action="start"]')).toBeVisible();
     // The menu screen fades in; wait for that before capturing.
     await page.waitForTimeout(400);
@@ -26,14 +26,16 @@ test.describe('Sista Bussen', () => {
     const intro = page.locator('.intro');
     if (await intro.isVisible()) {
       await page.screenshot({ path: 'screenshots/00-intro.png' });
-      await page.getByRole('button', { name: 'UPPFATTAT' }).click();
+      await page.getByRole('button', { name: 'GOT IT' }).click();
       await expect(intro).toHaveCount(0);
       await page.waitForTimeout(250);
     }
     await page.screenshot({ path: 'screenshots/01-menu.png' });
 
-    // 2. Start a run.
+    // 2. START opens the route screen; tapping a stop starts the map.
     await page.locator('[data-action="start"]').click();
+    await expect(page.locator('[data-screen="route"]')).toBeVisible();
+    await page.locator('.stop:not([data-stop="safe"])').first().click();
     await expect.poll(async () => page.evaluate(() => window.__game?.getState().phase ?? '')).toBe('run');
 
     const box = await page.locator('#stage').boundingBox();

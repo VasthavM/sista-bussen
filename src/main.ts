@@ -4,12 +4,14 @@
  */
 
 import './style.css';
+import './ui/flow.css';
 
 import { track } from './analytics';
 import { createAudio } from './audio';
 import { createRenderer } from './render';
 import { dayKey } from './meta/daily';
 import { grantIap } from './meta/economy';
+import { SAFE_GRANT, currentOptions, resolveSafeStop } from './meta/route';
 import {
   addScrap,
   createFreshProfile,
@@ -28,6 +30,7 @@ import { openContracts } from './ui/contracts';
 import { openCrate } from './ui/crate';
 import { el, toast } from './ui/kit';
 import { mountMenu, type MenuView, type RunSelection, type ShopTab } from './ui/menu';
+import { mountRoute, type RouteView } from './ui/route';
 import { OverlayHost } from './ui/overlay';
 import { openSettings } from './ui/settings';
 import { openShop } from './ui/shop';
@@ -84,7 +87,7 @@ function ensureContracts(): void {
 ensureContracts();
 
 if (recovered) {
-  toast('Sparfilen kunde inte läsas — ny profil skapad', 'bad');
+  toast('Your save could not be read. Started a new profile.', 'bad');
 }
 
 // ---- services ----
@@ -96,7 +99,7 @@ audio.setMuted(profile.settings.muted);
 
 const updates = new UpdateCoordinator(
   app,
-  () => game.getState().phase === 'menu',
+  () => game.getState().phase === 'menu' || game.getState().phase === 'route',
   () => game.getState().phase === 'run',
 );
 updates.attach();
@@ -121,6 +124,9 @@ const iap = new MockIapProvider((product) => {
 });
 
 let menu: MenuView | null = null;
+let routeView: RouteView | null = null;
+/** Character and weapon picked on the menu; the route screen passes them to every map. */
+let loadout: RunSelection | null = null;
 
 function refreshMenu(): void {
   menu?.refresh();
@@ -128,6 +134,7 @@ function refreshMenu(): void {
 
 function showMenu(announceBreak = true): void {
   game.toMenu();
+  closeRoute();
   if (menu) {
     menu.refresh();
   } else {
@@ -136,7 +143,10 @@ function showMenu(announceBreak = true): void {
       profile,
       audio,
       showIntro: () => shouldShowIntro(),
-      onStart: (selection) => beginRun(selection),
+      onStart: (selection) => {
+        loadout = selection;
+        showRoute();
+      },
       onOpenShop: (tab) => openShopSheet(tab),
       onOpenContracts: () => openContractsSheet(),
       onOpenCrate: () => openCrateSheet(),
@@ -164,13 +174,42 @@ function shouldShowIntro(): boolean {
   }
 }
 
-function beginRun(selection: RunSelection): void {
+function closeRoute(): void {
+  routeView?.destroy();
+  routeView = null;
+}
+
+/** The screen between maps. Also a natural break, so a waiting update may apply here. */
+function showRoute(): void {
   if (menu) {
     menu.destroy();
     menu = null;
   }
-  game.setSelection(selection);
-  game.startRun(selection);
+  game.toRoute();
+  closeRoute();
+  routeView = mountRoute({
+    root: uiRoot,
+    profile,
+    audio,
+    onPick: pickStop,
+    onBack: () => showMenu(),
+  });
+  updates.onMenu();
+}
+
+function pickStop(index: number): void {
+  const option = currentOptions(profile.route, profile.routeSeed)[index];
+  if (!option) return;
+  if (option.type === 'safe') {
+    const update = resolveSafeStop(profile.route, profile.materials, profile.routeSeed, index);
+    profile.route = update.route;
+    profile.materials = update.materials;
+    persist();
+    routeView?.refresh({ title: 'Safe stop · rested and traded', grant: SAFE_GRANT });
+    return;
+  }
+  closeRoute();
+  game.startMap(index, loadout ?? {});
 }
 
 function openShopSheet(tab: ShopTab): void {
@@ -195,7 +234,7 @@ function openShopSheet(tab: ShopTab): void {
       }
       persist();
       refreshMenu();
-      toast(profile.ownedSkus.length > 0 ? 'Köp återställda' : 'Inga köp att återställa', 'info');
+      toast(profile.ownedSkus.length > 0 ? 'Purchases restored' : 'No purchases to restore', 'info');
     },
     onChanged: refreshMenu,
   });
@@ -236,6 +275,7 @@ function openSettingsSheet(): void {
 
 function resetSave(): void {
   game.toMenu();
+  closeRoute();
   const fresh = createFreshProfile();
   Object.assign(profile, fresh);
   audio.setMuted(false);
@@ -266,6 +306,7 @@ const game = new Game({
   persist,
   onProfileChanged: refreshMenu,
   onExitToMenu: () => showMenu(),
+  onExitToRoute: () => showRoute(),
   onRunSummary: () => updates.onSummary(),
 });
 
@@ -331,16 +372,21 @@ const debugApi: GameDebugApi = {
   forceSpawn: (type) => game.forceSpawn(type),
   endRun: () => game.endRun(),
   completeObjective: () => game.completeObjective(),
+  meetQuota: () => game.meetQuota(),
   setHp: (n) => game.setHp(n),
   onScreenEnemies: () => game.onScreenEnemies(),
   closestEnemy: () => game.closestEnemy(),
   startRun: (opts = {}) => {
-    const selection: RunSelection = {
-      night: opts.night ?? Math.max(1, profile.nightUnlocked),
-      character: opts.character ?? 'nattvandraren',
-      weapon: opts.weapon ?? 'nyckel',
-    };
-    beginRun(selection);
+    // Skips the route screen: plays the first playable stop of the current layer.
+    const options = currentOptions(profile.route, profile.routeSeed);
+    const index = options.findIndex((o) => o.type !== 'safe');
+    if (menu) {
+      menu.destroy();
+      menu = null;
+    }
+    closeRoute();
+    loadout = { character: opts.character ?? 'nattvandraren', weapon: opts.weapon ?? 'nyckel' };
+    game.startMap(index, loadout);
   },
   setPhase: (phase) => game.setPhase(phase),
   grantMaterials: (m) => {
@@ -363,9 +409,11 @@ const debugApi: GameDebugApi = {
     nightUnlocked: profile.nightUnlocked,
     bestNight: profile.bestNight,
     totalRuns: profile.totalRuns,
+    materials: { ...profile.materials },
+    route: { depth: profile.route.depth, checkpoint: profile.route.checkpoint, bestDepth: profile.route.bestDepth },
+    routeSeed: profile.routeSeed,
     weaponTokens: profile.weaponTokens,
     upgrades: { ...profile.upgrades },
-    materials: { ...profile.materials },
   }),
   version: updates.versionLine(),
 };

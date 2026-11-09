@@ -64,7 +64,7 @@ test.describe('menu loadout', () => {
         return body.scrollHeight > body.clientHeight;
       });
       expect(scrolls).toBe(false);
-      await expect(slot(page, 'weapon')).toContainText('Vad har du i fickan?');
+      await expect(slot(page, 'weapon')).toContainText('Starting weapon');
       await expect(slot(page, 'weapon')).toContainText(WEAPONS.nyckel.name);
       await page.screenshot({ path: `screenshots/menu-${name}.png` });
 
@@ -98,12 +98,18 @@ test.describe('menu loadout', () => {
       const bodyHeight = await page.evaluate(() => document.documentElement.scrollHeight);
       expect(bodyHeight).toBeLessThanOrEqual(size.height + 1);
 
-      // Currency is a chip, not a full-width row.
-      const chip = await box('.wallet--tickets');
-      expect(chip.width).toBeLessThan(size.width * 0.5);
+      // The three materials are chips, not full-width rows.
+      for (const id of ['scrap', 'parts', 'supplies']) {
+        const chip = await box(`.wallet--${id}`);
+        expect(chip.width).toBeLessThan(size.width * 0.5);
+      }
+      await expect(page.locator('.menu__wallet [data-material]')).toHaveCount(3);
+      // The night picker is gone; the route card replaces it.
+      await expect(page.locator('.nights')).toHaveCount(0);
+      await expect(page.locator('[data-menu="route"]')).toContainText('Stop 1 / 10');
 
       // No void: every gap between stacked blocks stays small.
-      const blocks = ['.menu__sign', '.wallet--tickets', '.menu__card', '.loadout', '[data-action="start"]', '.menu__nav'];
+      const blocks = ['.menu__sign', '.wallet--scrap', '.menu__card', '.loadout', '[data-action="start"]', '.menu__nav'];
       let prev = await box(blocks[0]);
       for (const sel of blocks.slice(1)) {
         const b = await box(sel);
@@ -117,7 +123,9 @@ test.describe('menu loadout', () => {
           .filter((n) => n.children.length === 0 && n.textContent?.trim())
           .map((n) => n.textContent!.trim()),
       );
-      expect(texts.filter((t, i) => texts.indexOf(t) !== i)).toEqual([]);
+      // Numbers repeat legitimately (three empty material chips all read 0).
+      expect(texts.filter((t, i) => texts.indexOf(t) !== i && !/^\d+$/.test(t))).toEqual([]);
+      await expect(page.locator('[data-action="start"]')).toHaveText('START');
       await expect(page.locator('[data-action="start"]')).not.toContainText('Chain Wrench');
       await expect(page.locator('.choice__dot')).toHaveCount(0);
       await page.screenshot({ path: `screenshots/menu-${name}.png` });
@@ -126,11 +134,11 @@ test.describe('menu loadout', () => {
 
   test('settings is one tap from the menu', async ({ page }) => {
     await openMenu(page);
-    await page.getByRole('button', { name: 'INSTÄLLNINGAR' }).click();
+    await page.getByRole('button', { name: 'SETTINGS' }).click();
     await expect(page.locator('.settings')).toBeVisible();
   });
 
-  test('vapennycklar show in the header chips only when owned', async ({ page }) => {
+  test('weapon keys show in the header chips only when owned', async ({ page }) => {
     await openMenu(page);
     await expect(page.locator('.wallet--token')).toHaveCount(0);
     await page.evaluate(() => window.__game!.grantTickets(1)); // forces a save to exist
@@ -153,7 +161,7 @@ test.describe('menu loadout', () => {
       const row = page.locator(`.loadout-sheet [data-weapon="${def.id}"]`);
       await expect(row).toContainText(`→ ${def.evolvedName}`);
       await expect(row).toContainText(
-        `Utvecklas vid nivå ${WEAPON_MAX_LEVEL} + ${PASSIVES[def.passive].name} ${EVOLUTION_PASSIVE_LEVEL}`,
+        `Evolves at level ${WEAPON_MAX_LEVEL} + ${PASSIVES[def.passive].name} ${EVOLUTION_PASSIVE_LEVEL}`,
       );
     }
   });
@@ -186,8 +194,8 @@ test.describe('menu loadout', () => {
       await expect(row).toContainText(def.name);
       await expect(row).toContainText(def.desc);
     }
-    await expect(page.locator('.loadout-sheet [data-weapon="telefon"]')).toContainText('LÅST');
-    await expect(page.locator('.loadout-sheet [data-weapon="nyckel"]')).not.toContainText('LÅST');
+    await expect(page.locator('.loadout-sheet [data-weapon="telefon"]')).toContainText('LOCKED');
+    await expect(page.locator('.loadout-sheet [data-weapon="nyckel"]')).not.toContainText('LOCKED');
     const scrolls = await page.locator('.picks').evaluate((n) => n.scrollHeight > n.clientHeight);
     expect(scrolls).toBe(false);
     const panel = await page.locator('.loadout-sheet__panel').boundingBox();
@@ -207,7 +215,7 @@ test.describe('menu loadout', () => {
   test('picking a non-default weapon and character starts the run with them, and survives a reload', async ({ page }) => {
     await openMenu(page);
     const baseMaxHp = await page.evaluate(() => {
-      window.__game!.startRun({ night: 1, character: 'nattvandraren', weapon: 'nyckel' });
+      window.__game!.startRun({ character: 'nattvandraren', weapon: 'nyckel' });
       return window.__game!.getState().maxHp;
     });
     await page.reload();
@@ -229,6 +237,7 @@ test.describe('menu loadout', () => {
     });
 
     await page.locator('[data-action="start"]').click();
+    await page.locator('.stop:not([data-stop="safe"])').first().click(); // the route screen passes the loadout on
     await expect.poll(() => page.evaluate(() => window.__game!.getState().phase)).toBe('run');
     const state = await page.evaluate(() => window.__game!.getState());
     expect(state.weapons.map((w) => w.id)).toEqual(['korv']);

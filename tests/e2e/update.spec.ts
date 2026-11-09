@@ -24,7 +24,7 @@ const VERSION_LINE = /v\d+\.\d+\.\d+ · \S+/;
 async function dismissIntro(page: Page): Promise<void> {
   const intro = page.locator('.intro');
   if (await intro.isVisible()) {
-    await page.getByRole('button', { name: 'UPPFATTAT' }).click();
+    await page.getByRole('button', { name: 'GOT IT' }).click();
     await expect(intro).toHaveCount(0);
   }
 }
@@ -47,7 +47,7 @@ const controllerScript = (page: Page): Promise<string> =>
 const gameState = (page: Page) => page.evaluate(() => window.__game!.getState());
 
 async function settingsVersion(page: Page): Promise<string> {
-  await page.getByRole('button', { name: 'INSTÄLLNINGAR' }).click();
+  await page.getByRole('button', { name: 'SETTINGS' }).click();
   const node = page.locator('.settings__version');
   await expect(node).toBeVisible();
   const text = (await node.textContent()) ?? '';
@@ -105,7 +105,7 @@ test.describe('update flow', () => {
     expect(before).toMatch(VERSION_LINE);
     expect(before).not.toContain('e2eupd');
 
-    await page.evaluate(() => window.__game!.startRun({ night: 1 }));
+    await page.evaluate(() => window.__game!.startRun());
     await expect.poll(async () => (await gameState(page)).phase).toBe('run');
     await page.evaluate(() => (window.__marker = 'same-page'));
     const started = (await gameState(page)).elapsed;
@@ -137,7 +137,7 @@ test.describe('update flow', () => {
 
   test('at the run summary the update is only re-offered; leaving to the menu applies it', async ({ page }) => {
     await bootControlled(page);
-    await page.evaluate(() => window.__game!.startRun({ night: 1 }));
+    await page.evaluate(() => window.__game!.startRun());
     await expect.poll(async () => (await gameState(page)).phase).toBe('run');
     const runsBefore = await page.evaluate(() => window.__game!.profile().totalRuns);
     await page.evaluate(() => (window.__marker = 'same-page'));
@@ -159,8 +159,8 @@ test.describe('update flow', () => {
     expect((await gameState(page)).phase).toBe('summary');
     expect(await controllerScript(page)).toMatch(/\/sw\.js$/);
 
-    // Natural break: the player leaves for the menu, the update lands without a tap.
-    await page.getByRole('button', { name: 'TILL KUREN' }).click();
+    // Natural break: the player continues to the route screen, the update lands without a tap.
+    await page.getByRole('button', { name: 'CONTINUE' }).click(); // route screen: also a natural break
     await page.waitForFunction(() => window.__marker === undefined && !!window.__game);
     await expect(page.locator('[data-screen="menu"]')).toBeVisible();
     expect(await controllerScript(page)).toContain('__update-sw.js');
@@ -249,7 +249,7 @@ test.describe('foreground update check (#10)', () => {
     await request.get('/__publish-sw?tag=e2erun');
     await skewClock(page, FOREGROUND_THROTTLE_MS + 1000);
 
-    await page.evaluate(() => window.__game!.startRun({ night: 1 }));
+    await page.evaluate(() => window.__game!.startRun());
     await expect.poll(async () => (await gameState(page)).phase).toBe('run');
     await setVisibility(page, 'hidden');
     await setVisibility(page, 'visible');

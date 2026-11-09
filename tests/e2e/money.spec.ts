@@ -1,7 +1,7 @@
 /**
  * The money loop, driven end to end: die, take the rewarded revive, exhaust the
- * revive cap, double the fares, then spend Biljetter on a permanent upgrade and
- * see it in the next run. Every price, cap and duration comes from the frozen
+ * revive cap, double the materials of an extracted map, then spend Biljetter on a
+ * permanent upgrade and see it in the next run. Every price, cap and duration comes from the frozen
  * catalog/shop modules — the only hardcoded numbers here are screen-independent
  * arithmetic.
  */
@@ -75,7 +75,7 @@ async function takeRevive(page: Page): Promise<void> {
   await expect.poll(async () => (await state(page)).phase, { timeout: 20_000 }).toBe('run');
 }
 
-test('revive, fare doubling and permanent upgrades all move real state', async ({ page }) => {
+test('revive, material doubling and permanent upgrades all move real state', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
 
@@ -93,7 +93,7 @@ test('revive, fare doubling and permanent upgrades all move real state', async (
 
   // 1. Baseline: one run at a known character, before any permanent upgrade.
   await page.evaluate(
-    ({ character, weapon }) => window.__game!.startRun({ night: 1, character, weapon }),
+    ({ character, weapon }) => window.__game!.startRun({ character, weapon }),
     { character: CHARACTER, weapon: WEAPON },
   );
   await expect.poll(async () => (await state(page)).phase).toBe('run');
@@ -109,7 +109,7 @@ test('revive, fare doubling and permanent upgrades all move real state', async (
   await die(page);
   const cap = AD_PLACEMENTS.revive.cap;
   const firstOffer = page.locator('.summary__offer--hero');
-  await expect(firstOffer).toContainText(`${cap} av ${cap} kvar`);
+  await expect(firstOffer).toContainText(`${cap} of ${cap} left`);
 
   await takeRevive(page);
   const revived = await state(page);
@@ -120,7 +120,7 @@ test('revive, fare doubling and permanent upgrades all move real state', async (
 
   // 3. Second death: one revive left, then the allowance is gone.
   await die(page);
-  await expect(page.locator('.summary__offer--hero')).toContainText(`${cap - 1} av ${cap} kvar`);
+  await expect(page.locator('.summary__offer--hero')).toContainText(`${cap - 1} of ${cap} left`);
   await takeRevive(page);
   const afterSecond = await state(page);
   expect(afterSecond.status).toBe('running');
@@ -130,20 +130,29 @@ test('revive, fare doubling and permanent upgrades all move real state', async (
   await expect(page.locator('.summary__offer--hero')).toHaveCount(0);
   expect((await state(page)).revivesUsed).toBe(cap);
 
-  // 4. Double fares: the offered Växel must become exactly 2x.
-  const payoutValue = page.locator('.summary__payout-value');
-  const beforeAd = digits(await payoutValue.textContent());
-  expect(beforeAd).toBeGreaterThan(0);
+  // 4. Back on the route, extract a map: the doubling offer must bank exactly one more copy of the haul.
+  await page.getByRole('button', { name: 'CONTINUE' }).click();
+  await expect(page.locator('[data-screen="route"]')).toBeVisible();
+  await page.locator('.stop:not([data-stop="safe"])').first().click();
+  await expect.poll(async () => (await state(page)).phase).toBe('run');
+  await waitForChange(page, 1);
+  await page.evaluate(() => window.__game!.completeObjective());
+  await expect.poll(async () => (await state(page)).phase).toBe('summary');
+  const gained = (await state(page)).materials;
+  const bankedOnce = (await profile(page)).materials;
 
   const doubleOffer = page.locator('.summary__offers button', { hasText: AD_PLACEMENTS.double_fares.title });
   await doubleOffer.click();
-  await expect(page.locator('.summary__payout-label')).toHaveText('VÄXEL · DUBBLAD', { timeout: 20_000 });
-  const afterAd = digits(await payoutValue.textContent());
-  expect(afterAd).toBe(beforeAd * 2);
-  await expect(page.locator('.summary__offers button', { hasText: 'VÄXLET ÄR DUBBLAT' })).toBeDisabled();
+  await expect(page.locator('.summary__loot-label')).toHaveText('Gained · doubled', { timeout: 20_000 });
+  const bankedTwice = (await profile(page)).materials;
+  expect(bankedTwice.scrap - bankedOnce.scrap).toBe(gained.scrap);
+  expect(bankedTwice.parts - bankedOnce.parts).toBe(gained.parts);
+  expect(bankedTwice.supplies - bankedOnce.supplies).toBe(gained.supplies);
+  await expect(page.locator('.summary__offers button', { hasText: 'MATERIALS DOUBLED' })).toBeDisabled();
 
   // 5. Spend Biljetter on a permanent upgrade and watch the balance move.
-  await page.getByRole('button', { name: 'TILL KUREN' }).click();
+  await page.getByRole('button', { name: 'CONTINUE' }).click();
+  await page.getByRole('button', { name: 'Menu', exact: true }).click();
   await expect(page.locator('[data-screen="menu"]')).toBeVisible();
 
   const levelBefore = (await profile(page)).upgrades[UPGRADE] ?? 0;
@@ -153,7 +162,7 @@ test('revive, fare doubling and permanent upgrades all move real state', async (
   const walletBefore = (await profile(page)).materials.supplies;
   expect(walletBefore).toBeGreaterThanOrEqual(cost);
 
-  await page.getByRole('button', { name: 'BUTIK', exact: true }).click();
+  await page.getByRole('button', { name: 'SHOP', exact: true }).click();
   await expect(page.locator('.shop')).toBeVisible();
 
   const row = page.locator('.shoprow').filter({ hasText: SHOP_UPGRADES[UPGRADE].name });
@@ -171,7 +180,7 @@ test('revive, fare doubling and permanent upgrades all move real state', async (
 
   // 6. The upgrade is real in the next run: same character, higher max HP.
   await page.evaluate(
-    ({ character, weapon }) => window.__game!.startRun({ night: 1, character, weapon }),
+    ({ character, weapon }) => window.__game!.startRun({ character, weapon }),
     { character: CHARACTER, weapon: WEAPON },
   );
   await expect.poll(async () => (await state(page)).phase).toBe('run');
