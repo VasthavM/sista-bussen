@@ -47,7 +47,7 @@ const controllerScript = (page: Page): Promise<string> =>
 const gameState = (page: Page) => page.evaluate(() => window.__game!.getState());
 
 async function settingsVersion(page: Page): Promise<string> {
-  await page.getByRole('button', { name: 'INSTÄLLNINGAR' }).click();
+  await page.getByRole('button', { name: 'SETTINGS' }).click();
   const node = page.locator('.settings__version');
   await expect(node).toBeVisible();
   const text = (await node.textContent()) ?? '';
