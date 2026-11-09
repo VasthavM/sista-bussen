@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 // PW_PORT lets concurrent worktrees run e2e without sharing (and killing) each other's preview server.
 const PORT = process.env.PW_PORT ?? '4173';
+const ORIGIN = `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -11,12 +12,18 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   reporter: [['list']],
   use: {
-    baseURL: `http://127.0.0.1:${PORT}`,
+    baseURL: ORIGIN,
     colorScheme: 'dark',
+    // The cold open covers the whole first launch. Every spec starts as a returning player;
+    // coldopen.spec.ts clears this to test the real first launch.
+    storageState: {
+      cookies: [],
+      origins: [{ origin: ORIGIN, localStorage: [{ name: 'sista-bussen.coldopen.v1', value: '1' }] }],
+    },
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['iPhone 13'], browserName: 'chromium' } },
+    { name: 'chromium', use: { ...devices['iPhone 13'], browserName: 'chromium', launchOptions: { args: ['--mute-audio'] } } },
     // The iOS engine: the update flow must hold under WebKit too (#10). Only the update spec runs here.
     { name: 'webkit', testMatch: 'update.spec.ts', use: { ...devices['iPhone 13'] } },
   ],

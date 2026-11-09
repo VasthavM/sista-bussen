@@ -75,7 +75,7 @@ test.describe('Zombus', () => {
     // 5. Force enough XP for a level-up and assert the card UI takes over.
     await page.evaluate(() => window.__game!.grantXp(200));
     await expect(page.locator('.cards .card').first()).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator('.levelup__title')).toContainText('NIVÅ');
+    await expect(page.locator('.levelup__title')).toContainText('LEVEL');
     await expect(page.locator('.cards .card')).toHaveCount(3);
     // Let the card fan-in animation settle before capturing.
     await page.waitForTimeout(700);

@@ -101,12 +101,12 @@ export function updateObjective(state: SimState): boolean {
   collectCanisters(state);
   if (!state.quotaMet && state.fuel >= state.config.map.fuelQuota) {
     state.quotaMet = true;
-    pushEvent(state, 'horn', state.bus.x, state.bus.y, state.fuel, 'BUSSEN VÄNTAR');
+    pushEvent(state, 'horn', state.bus.x, state.bus.y, state.fuel, 'BUS IS READY');
   }
   const p = state.player;
   if (state.quotaMet && Math.hypot(p.x - state.bus.x, p.y - state.bus.y) < BUS_RADIUS + PLAYER_RADIUS) {
     state.status = 'extracted';
-    pushEvent(state, 'win', p.x, p.y, 0, 'ALLA OMBORD');
+    pushEvent(state, 'win', p.x, p.y, 0, 'ALL ABOARD');
     return true;
   }
   return false;

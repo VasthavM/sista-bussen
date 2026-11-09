@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="sv">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>SISTA BUSSEN — sprite gallery</title>
+    <title>ZOMBUS — sprite gallery</title>
     <style>
       html,
       body {
@@ -15,14 +15,14 @@
     </style>
   </head>
   <body>
-    <canvas id="gallery" width="1760" height="780"></canvas>
+    <canvas id="gallery" width="1760" height="1060"></canvas>
     <script type="module">
-      import { drawSpriteGallery } from '/src/render/entities.ts';
+      import { drawSpriteGallery } from '/src/render/gallery.ts';
 
       const canvas = document.getElementById('gallery');
       const ctx = canvas.getContext('2d');
       // 1 buffer pixel per CSS pixel, so the 2x row really is 2x in the file.
-      drawSpriteGallery(ctx, 1760, 780);
+      drawSpriteGallery(ctx, 1760, 1060);
       window.__galleryReady = true;
     </script>
   </body>

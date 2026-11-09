@@ -7,6 +7,7 @@ import type { CharacterId, WeaponId } from '../sim/types';
 import { isWeaponUnlocked, WEAPON_UNLOCK_COST } from '../meta/shop';
 import type { Profile } from '../meta/save';
 import { MATERIAL_ORDER, materialChip } from './icons';
+import { buildIntroCard } from './intro';
 import { button, el, fmt } from './kit';
 import { buildRouteLine } from './route';
 import { stopInSegment } from '../flow';
@@ -158,7 +159,11 @@ export function mountMenu(deps: MenuDeps): MenuView {
     root.appendChild(foot);
 
     if (sheet) root.appendChild(buildSheet(sheet));
-    if (deps.showIntro()) root.appendChild(buildIntro(deps));
+    if (deps.showIntro()) {
+      root.appendChild(
+        buildIntroCard({ onDismiss: deps.onDismissIntro, onClick: () => deps.audio.play('ui_click') }),
+      );
+    }
 
     if (focusAfter) {
       root.querySelector<HTMLElement>(focusAfter)?.focus({ preventScroll: true });
@@ -371,39 +376,4 @@ function storage(): Storage | null {
   } catch {
     return null;
   }
-}
-
-function buildIntro(deps: MenuDeps): HTMLElement {
-  const intro = el('div', 'intro');
-  intro.dataset.screen = 'intro';
-  const panel = el('div', 'intro__panel');
-  panel.appendChild(el('div', 'intro__tag', 'FIRST ROUTE'));
-  panel.appendChild(el('h2', 'intro__title', 'HOW TO SURVIVE'));
-  const list = el('ol', 'intro__list');
-  const items = [
-    ['Fill the fuel gauge', 'Kill zombies and grab fuel canisters until you hit the quota.'],
-    ['Then get to the bus', 'Reach it and you are out. The horde keeps growing while you wait.'],
-    ['Drag to move', 'A floating stick appears under your thumb. Your weapon fires on its own.'],
-    ['Pick your next stop', 'Every stop pays differently. Die, and you fall back to the last checkpoint.'],
-    ['Ads are optional', 'Only when you want a second chance or double materials. Everything else is free.'],
-  ];
-  for (const [title, text] of items) {
-    const li = el('li', 'intro__item');
-    li.appendChild(el('strong', 'intro__item-title', title));
-    li.appendChild(el('span', 'intro__item-text', text));
-    list.appendChild(li);
-  }
-  panel.appendChild(list);
-  panel.appendChild(
-    button('GOT IT', {
-      variant: 'primary',
-      onClick: () => {
-        deps.audio.play('ui_click');
-        deps.onDismissIntro();
-        intro.remove();
-      },
-    }),
-  );
-  intro.appendChild(panel);
-  return intro;
 }

@@ -30,7 +30,9 @@ H=<host> node tools/live-check.mjs   # smoke-check a deployment
 - Before any push to `main`: `npm run build:docker-check` must pass. Local green has hidden Docker failures
   twice already.
 - E2E runs: always set your own `PW_PORT`. A shared port with `reuseExistingServer` silently tests another
-  worktree's build.
+  worktree's build. Don't use 4190: WebKit hangs on it (restricted port). Use 4184–4189 and 4191–4199.
+- Automated browsers are silent: the game skips audio when `navigator.webdriver` is true. Keep it that way; Max
+  hears test runs otherwise.
 - `src/meta/` and `src/monetize/` change only test-first. Save changes need a forward migration and a migration test.
 - Every price, cap, cooldown and gate constant lives in `src/monetize/catalog.ts`. Never in UI code.
 - One HUD (DOM). The stick is the only in-canvas UI.

@@ -51,7 +51,7 @@ async function settingsVersion(page: Page): Promise<string> {
   const node = page.locator('.settings__version');
   await expect(node).toBeVisible();
   const text = (await node.textContent()) ?? '';
-  await page.getByRole('button', { name: 'STÄNG' }).click();
+  await page.getByRole('button', { name: 'CLOSE' }).click();
   await expect(page.locator('.settings')).toHaveCount(0);
   return text;
 }
@@ -71,7 +71,7 @@ test.describe('boot screen', () => {
     await page.goto('/', { waitUntil: 'commit' });
     const boot = page.locator('#boot');
     await expect(boot).toBeVisible();
-    await expect(boot.locator('.boot__title')).toHaveText('SISTA BUSSEN');
+    await expect(boot.locator('.boot__title')).toHaveText('ZOMBUS');
     await expect(boot.locator('.boot__track .boot__runner')).toBeVisible();
     const bootVersion = ((await boot.locator('.boot__version').textContent()) ?? '').trim();
     expect(bootVersion).toMatch(new RegExp(`^${VERSION_LINE.source}$`));
@@ -114,7 +114,7 @@ test.describe('update flow', () => {
     await installTestWorker(page, 'tag=e2eupd');
     const banner = page.locator('.update-banner');
     await expect(banner).toBeVisible();
-    await expect(banner).toContainText('Ny version klar');
+    await expect(banner).toContainText('New version ready');
     await expect(banner).toHaveClass(/update-banner--in/);
     await page.waitForTimeout(300); // let the fade-in finish before capturing
     if (browserName === 'chromium') await page.screenshot({ path: 'screenshots/update-banner.png' });
@@ -145,7 +145,7 @@ test.describe('update flow', () => {
     await installTestWorker(page, 'tag=e2ebreak');
     const banner = page.locator('.update-banner');
     await expect(banner).toBeVisible();
-    await banner.getByRole('button', { name: 'SENARE' }).click(); // dismissed mid-run
+    await banner.getByRole('button', { name: 'LATER' }).click(); // dismissed mid-run
     await expect(banner).toHaveCount(0);
 
     await page.evaluate(() => window.__game!.endRun());
@@ -222,7 +222,7 @@ test.describe('foreground update check (#10)', () => {
     expect(await updateCalls(page)).toBe(0); // going to the background never checks
     await setVisibility(page, 'visible');
     await expect(banner).toBeVisible();
-    await expect(banner).toContainText('Ny version klar');
+    await expect(banner).toContainText('New version ready');
     expect(await updateCalls(page)).toBe(1);
 
     // Back and forth again inside the throttle window: no second update() call.

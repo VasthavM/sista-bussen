@@ -13,9 +13,10 @@
  *   public/apple-touch-icon.png    180x180  opaque, for iOS
  *   public/icon.svg                vector favicon, same artwork
  *
- * Artwork: the night bus-stop sign — sodium-amber plate and pole on the game's
- * asphalt value, with a bus pictogram. Drawn for icon scale: one silhouette, no
- * text, no thin strokes, so it survives 60 px on a home screen.
+ * Artwork (ZOMBUS): the bus, head-on, headlights blazing in a toxic-green fog,
+ * two zombie hands clawing over the bumper. Drawn for icon scale: one amber
+ * mass, two white lights, two green hands, no text, no thin strokes, so it
+ * survives 60 px on a home screen.
  *
  * Nothing here reaches into src/. If the palette changes, change the values
  * below and re-run.
@@ -25,14 +26,22 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
 const BG = '#0b0e12';
 const AMBER = '#f5a524';
+const AMBER_DEEP = '#c97b12';
+const FOG = '#8fd16a';
+const SKIN = '#9db88a';
+const LIGHT = '#f4fbff';
 
-/** Full-bleed ground plus the sodium-lamp pool the plate sits in. */
+/** Full-bleed ground plus the toxic fog the bus drives out of. */
 const background = `
   <defs>
-    <radialGradient id="lamp" cx="50%" cy="36%" r="62%">
-      <stop offset="0%" stop-color="${AMBER}" stop-opacity="0.30"/>
-      <stop offset="55%" stop-color="${AMBER}" stop-opacity="0.09"/>
-      <stop offset="100%" stop-color="${AMBER}" stop-opacity="0"/>
+    <radialGradient id="fog" cx="50%" cy="30%" r="68%">
+      <stop offset="0%" stop-color="${FOG}" stop-opacity="0.34"/>
+      <stop offset="55%" stop-color="${FOG}" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="${FOG}" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="beam" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="${LIGHT}" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="${LIGHT}" stop-opacity="0"/>
     </radialGradient>
     <radialGradient id="vig" cx="50%" cy="50%" r="72%">
       <stop offset="60%" stop-color="#000000" stop-opacity="0"/>
@@ -40,27 +49,34 @@ const background = `
     </radialGradient>
   </defs>
   <rect width="512" height="512" fill="${BG}"/>
-  <rect width="512" height="512" fill="url(#lamp)"/>`;
+  <rect width="512" height="512" fill="url(#fog)"/>`;
 
-/** Plate, pole and base. Amber rim on the pole reads as lamp spill. */
+/** Bus, front view: roof, cracked windscreen, grille and bumper. */
 const sign = `
-  <rect x="240" y="330" width="32" height="152" fill="#2b3644"/>
-  <rect x="240" y="330" width="9" height="152" fill="${AMBER}" opacity="0.7"/>
-  <rect x="208" y="458" width="96" height="20" rx="8" fill="#303a46"/>
-  <rect x="76" y="52" width="360" height="304" rx="36" fill="${AMBER}"/>
-  <rect x="92" y="68" width="328" height="272" rx="28" fill="none" stroke="${BG}" stroke-opacity="0.14" stroke-width="8"/>`;
+  <rect x="92" y="96" width="328" height="368" rx="52" fill="${BG}"/>
+  <rect x="104" y="108" width="304" height="344" rx="44" fill="${AMBER}"/>
+  <rect x="104" y="108" width="304" height="40" rx="30" fill="${AMBER_DEEP}"/>
+  <rect x="132" y="168" width="248" height="130" rx="18" fill="${BG}"/>
+  <path d="M258 170 L232 232 L270 252 L246 296" fill="none" stroke="${LIGHT}" stroke-opacity="0.75" stroke-width="7" stroke-linejoin="round"/>
+  <rect x="204" y="330" width="104" height="38" rx="8" fill="${BG}"/>
+  <rect x="104" y="400" width="304" height="52" rx="16" fill="${BG}"/>`;
 
-/**
- * Bus pictogram: one dark mass, amber window band, wheels breaking the bottom
- * edge. Deliberately only five shapes — anything finer turns to mud at 60 px.
- */
+/** Headlights, then the hands over the bumper. Only a handful of shapes. */
 const bus = `
-  <rect x="136" y="132" width="240" height="152" rx="26" fill="${BG}"/>
-  <rect x="158" y="152" width="196" height="50" rx="9" fill="${AMBER}"/>
-  <rect x="220" y="152" width="12" height="50" fill="${BG}"/>
-  <rect x="282" y="152" width="12" height="50" fill="${BG}"/>
-  <circle cx="182" cy="288" r="22" fill="${BG}"/>
-  <circle cx="330" cy="288" r="22" fill="${BG}"/>`;
+  <circle cx="152" cy="350" r="70" fill="url(#beam)"/>
+  <circle cx="360" cy="350" r="70" fill="url(#beam)"/>
+  <circle cx="152" cy="350" r="30" fill="${LIGHT}"/>
+  <circle cx="360" cy="350" r="30" fill="${LIGHT}"/>
+  <g fill="${SKIN}" stroke="${BG}" stroke-width="10" stroke-linejoin="round">
+    <path d="M60 512 L84 380 L132 392 L124 512 Z"/>
+    <rect x="62" y="318" width="22" height="70" rx="11" transform="rotate(-14 73 353)"/>
+    <rect x="88" y="308" width="22" height="78" rx="11"/>
+    <rect x="114" y="316" width="22" height="70" rx="11" transform="rotate(12 125 351)"/>
+    <path d="M452 512 L428 380 L380 392 L388 512 Z"/>
+    <rect x="428" y="318" width="22" height="70" rx="11" transform="rotate(14 439 353)"/>
+    <rect x="402" y="308" width="22" height="78" rx="11"/>
+    <rect x="376" y="316" width="22" height="70" rx="11" transform="rotate(-12 387 351)"/>
+  </g>`;
 
 const artwork = `${background}${sign}${bus}<rect width="512" height="512" fill="url(#vig)"/>`;
 

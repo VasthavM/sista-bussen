@@ -256,7 +256,7 @@ export function revivePlayer(state: SimState): boolean {
   state.enemyShots.length = 0;
   state.projectiles.length = 0;
   state.shake = 8;
-  pushEvent(state, 'revive', state.player.x, state.player.y, state.player.hp, 'BUSSEN ÄR FÖRSENAD');
+  pushEvent(state, 'revive', state.player.x, state.player.y, state.player.hp, 'NOT TODAY');
   return true;
 }
 

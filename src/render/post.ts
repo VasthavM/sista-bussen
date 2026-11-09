@@ -193,7 +193,7 @@ export function drawPauseVeil(d: Draw): void {
   const size = Math.round(Math.max(18, Math.min(34, vp.w * 0.08)));
   ctx.font = `700 ${size}px ui-monospace, SFMono-Regular, Menlo, monospace`;
   ctx.fillStyle = rgba(PAL.ink, 0.9);
-  ctx.fillText('PAUSAD', vp.x + vp.w / 2, vp.y + vp.h * 0.5);
+  ctx.fillText('PAUSED', vp.x + vp.w / 2, vp.y + vp.h * 0.5);
   ctx.restore();
 }
 

@@ -25,7 +25,8 @@ export class AudioEngineImpl implements AudioEngine {
   private destroyed = false;
 
   unlock(): void {
-    if (this.destroyed) return;
+    // Automated browsers (Playwright, checkers) stay silent. The saved mute setting is untouched.
+    if (this.destroyed || (typeof navigator !== 'undefined' && navigator.webdriver)) return;
     if (!this.ctx) {
       const Ctor = audioCtor();
       if (!Ctor) return;

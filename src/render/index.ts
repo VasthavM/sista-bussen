@@ -10,7 +10,8 @@ import { EVENT_POOL, WORLD, clearEvents } from '../sim/state';
 import type { SimEvent, SimState } from '../sim/types';
 import { beginWorld, computeViewport, computeZoom, endWorld, resetToScreen } from './draw';
 import type { Draw, Viewport } from './draw';
-import { drawEnemies, drawPlayer, drawShadows } from './entities';
+import { drawPlayer } from './entities';
+import { drawEnemies, drawShadows } from './zombies';
 import { drawGroundBloom, groundLayer, invalidateGroundLayer } from './ground';
 import { PAL, ENEMY_LOOK, WEAPON_LOOK } from './palette';
 import { DamageNumbers, ParticleField } from './particles';
@@ -118,7 +119,7 @@ class RendererImpl implements Renderer {
 
   constructor(canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d', { alpha: false });
-    if (!ctx) throw new Error('Sista bussen: 2D canvas context unavailable');
+    if (!ctx) throw new Error('ZOMBUS: 2D canvas context unavailable');
     this.canvas = canvas;
     this.ctx = ctx;
     this.resize(canvas.clientWidth || 360, canvas.clientHeight || 640, window.devicePixelRatio || 1);
@@ -537,9 +538,9 @@ class RendererImpl implements Renderer {
     ctx.font = `700 ${size}px ui-monospace, SFMono-Regular, Menlo, monospace`;
     const y = vp.y + vp.h * 0.3;
     ctx.fillStyle = 'rgba(4,6,10,0.85)';
-    ctx.fillText('UTVECKLAD', vp.x + vp.w / 2 + 2, y + 2);
+    ctx.fillText('EVOLVED', vp.x + vp.w / 2 + 2, y + 2);
     ctx.fillStyle = PAL.amberWarm;
-    ctx.fillText('UTVECKLAD', vp.x + vp.w / 2, y);
+    ctx.fillText('EVOLVED', vp.x + vp.w / 2, y);
     ctx.restore();
   }
 
@@ -555,7 +556,7 @@ class RendererImpl implements Renderer {
     const size = Math.round(clamp(vp.w * 0.085, 20, 40));
     ctx.font = `700 ${size}px ui-monospace, SFMono-Regular, Menlo, monospace`;
     ctx.fillStyle = won ? rgba(PAL.green, 0.95) : rgba(PAL.danger, 0.95);
-    ctx.fillText(won ? 'ALLA OMBORD' : 'DU MISSADE BUSSEN', vp.x + vp.w / 2, y);
+    ctx.fillText(won ? 'ALL ABOARD' : 'OVERRUN', vp.x + vp.w / 2, y);
     ctx.restore();
   }
 

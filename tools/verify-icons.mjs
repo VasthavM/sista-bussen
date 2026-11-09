@@ -46,7 +46,7 @@ const html = await (await ctx.get('/')).text();
 const appleHref = html.match(/<link[^>]+rel="apple-touch-icon"[^>]*>/)?.[0] ?? '';
 const appleSizes = /sizes="180x180"/.test(appleHref);
 const applePng = /href="\.\/apple-touch-icon\.png"/.test(appleHref);
-const appTitle = /<meta name="apple-mobile-web-app-title" content="Sista Bussen"/.test(html);
+const appTitle = /<meta name="apple-mobile-web-app-title" content="ZOMBUS"/.test(html);
 const standalone = /apple-mobile-web-app-capable" content="yes"/.test(html);
 console.log(`index apple-touch-icon: ${appleHref.trim()}`);
 console.log(`index apple-mobile-web-app-title: ${appTitle} standalone: ${standalone}`);

@@ -9,7 +9,7 @@
  *    replacing them with white. A flashing player or enemy still has its
  *    silhouette, its dark outline and its accent colour.
  */
-import { CHARACTERS, ENEMIES, WEAPONS } from '../sim/content';
+import { CHARACTERS, WEAPONS } from '../sim/content';
 import type { CharacterId, EnemyType, WeaponId } from '../sim/types';
 import { darken, lighten, mix, rgba } from './util';
 
@@ -62,25 +62,45 @@ function enemyLook(base: string, accent: string): EnemyLook {
   };
 }
 
+/**
+ * Zombie colours. Skin is a desaturated green-grey on every type; the clothes
+ * carry the type (brown, pale, blue, purple, dark teal, red, amber) and the
+ * eye glow carries the accent. These used to come from the sim's `colour`
+ * field; the art owns its palette now, so a balance ticket never repaints it.
+ */
+const ZOMBIE = {
+  shambler: '#7a6a55',
+  crawler: '#9aa994',
+  runner: '#46628a',
+  spitter: '#6a4fb0',
+  charger: '#2f5d55',
+  warden: PAL.danger,
+  conductor: PAL.amber,
+  skin: '#8fa088',
+  skinPale: '#b0bfa8',
+  bile: '#b8e64a',
+  sick: '#d7e04a',
+} as const;
+
 export const ENEMY_LOOK: Record<EnemyType, EnemyLook> = {
-  fyllo: enemyLook(ENEMIES.fyllo.colour, PAL.amber),
-  duva: enemyLook(ENEMIES.duva.colour, PAL.fluoro),
-  skugga: enemyLook(ENEMIES.skugga.colour, PAL.fluoroDeep),
-  vaktmastare: enemyLook(ENEMIES.vaktmastare.colour, PAL.green),
-  sparkcykel: enemyLook(ENEMIES.sparkcykel.colour, PAL.green),
-  nattvakt: enemyLook(ENEMIES.nattvakt.colour, PAL.danger),
-  chauffor: enemyLook(ENEMIES.chauffor.colour, PAL.amber),
+  fyllo: enemyLook(ZOMBIE.shambler, ZOMBIE.sick),
+  duva: enemyLook(ZOMBIE.crawler, '#eaf3c4'),
+  skugga: enemyLook(ZOMBIE.runner, PAL.fluoro),
+  vaktmastare: enemyLook(ZOMBIE.spitter, ZOMBIE.bile),
+  sparkcykel: enemyLook(ZOMBIE.charger, '#ff9a3c'),
+  nattvakt: enemyLook(ZOMBIE.warden, PAL.danger),
+  chauffor: enemyLook(ZOMBIE.conductor, PAL.amber),
 };
 
 /**
  * Per-type art recipe. Every string is built here, once, so the per-frame draw
  * loop never allocates a colour or an `rgba()` string for 150 entities.
  *
- * Threat tier is carried by colour, in the existing palette:
- * `fyllo`/`duva` are dusted-down trash grey-brown, `skugga`/`vaktmastare` get
- * cold fluoro, `sparkcykel` adds danger red on its charge lane, and the two
- * bosses are saturated red/amber. Red is reserved for "this will hurt you":
- * charge lanes, throw wind-ups and burst rings.
+ * Threat tier is carried by colour, in the existing palette: the Shambler and
+ * Crawler are dusted-down grey-brown fodder, the Runner and Spitter get cold
+ * blue and toxic purple, the Charger is dark teal plate, and the two bosses
+ * are saturated red/amber. Red is reserved for "this will hurt you": charge
+ * lanes, spit wind-ups and burst rings.
  */
 export interface EnemyArt {
   look: EnemyLook;
@@ -158,48 +178,49 @@ function enemyArt(
 
 export const ENEMY_ART: Record<EnemyType, EnemyArt> = {
   fyllo: enemyArt('fyllo', {
-    body: mix(ENEMIES.fyllo.colour, PAL.asphalt, 0.08),
-    head: mix(ENEMIES.fyllo.colour, '#ffd9a8', 0.5),
-    kit: PAL.green,
-    kitShade: mix(PAL.green, PAL.asphalt, 0.55),
+    body: mix(ZOMBIE.shambler, PAL.asphalt, 0.08),
+    head: ZOMBIE.skin,
+    kit: '#c9c3a0',
+    kitShade: '#6a644a',
     dusty: true,
   }),
   duva: enemyArt('duva', {
-    body: mix(ENEMIES.duva.colour, PAL.asphalt, 0.1),
-    head: mix(ENEMIES.duva.colour, '#ffffff', 0.12),
-    kit: PAL.amber,
-    kitShade: PAL.amberDeep,
+    body: mix(ZOMBIE.crawler, PAL.asphalt, 0.1),
+    head: ZOMBIE.skinPale,
+    kit: '#e0e4cf',
+    kitShade: '#7c8470',
     bodyDeepMix: 0.3,
     dusty: true,
   }),
   skugga: enemyArt('skugga', {
-    body: mix(ENEMIES.skugga.colour, PAL.fluoro, 0.3),
-    head: mix(PAL.fluoro, '#ffffff', 0.4),
-    kit: PAL.fluoroDeep,
+    body: mix(ZOMBIE.runner, PAL.fluoro, 0.12),
+    head: '#8fa89c',
+    kit: PAL.fluoro,
+    kitShade: PAL.fluoroDeep,
   }),
   vaktmastare: enemyArt('vaktmastare', {
-    body: mix(ENEMIES.vaktmastare.colour, PAL.asphalt, 0.3),
-    head: mix('#c9a68a', PAL.ink, 0.18),
-    kit: PAL.green,
-    kitShade: mix(PAL.green, PAL.asphalt, 0.5),
+    body: mix(ZOMBIE.spitter, PAL.asphalt, 0.3),
+    head: '#9ab08c',
+    kit: ZOMBIE.bile,
+    kitShade: '#566f12',
   }),
   sparkcykel: enemyArt('sparkcykel', {
-    body: mix(ENEMIES.sparkcykel.colour, PAL.asphalt, 0.45),
-    head: '#cbb094',
-    kit: PAL.green,
-    kitShade: '#101a1c',
+    body: mix(ZOMBIE.charger, PAL.asphalt, 0.2),
+    head: '#8aa088',
+    kit: '#a9b4be',
+    kitShade: '#3a444c',
   }),
   nattvakt: enemyArt('nattvakt', {
-    body: mix(ENEMIES.nattvakt.colour, PAL.asphalt, 0.28),
-    head: '#e6cdb6',
+    body: mix(ZOMBIE.warden, PAL.asphalt, 0.28),
+    head: '#9fae95',
     kit: PAL.amberWarm,
-    kitShade: mix(ENEMIES.nattvakt.colour, PAL.asphalt, 0.55),
+    kitShade: mix(ZOMBIE.warden, PAL.asphalt, 0.55),
   }),
   chauffor: enemyArt('chauffor', {
-    body: mix(ENEMIES.chauffor.colour, PAL.asphalt, 0.35),
-    head: '#e8caa4',
+    body: mix(ZOMBIE.conductor, PAL.asphalt, 0.35),
+    head: '#a8b498',
     kit: PAL.amber,
-    kitShade: mix(ENEMIES.chauffor.colour, PAL.asphalt, 0.62),
+    kitShade: mix(ZOMBIE.conductor, PAL.asphalt, 0.62),
   }),
 };
 

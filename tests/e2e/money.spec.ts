@@ -175,7 +175,7 @@ test('revive, material doubling and permanent upgrades all move real state', asy
   expect(levelAfter).toBe(levelBefore + 1);
   expect(walletBefore - walletAfter).toBe(cost);
 
-  await page.getByRole('button', { name: 'STÄNG', exact: true }).click();
+  await page.getByRole('button', { name: 'CLOSE', exact: true }).click();
   await expect(page.locator('.shop')).toHaveCount(0);
 
   // 6. The upgrade is real in the next run: same character, higher max HP.
