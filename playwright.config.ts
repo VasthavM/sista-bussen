@@ -17,8 +17,8 @@ export default defineConfig({
   },
   projects: [
     { name: 'chromium', use: { ...devices['iPhone 13'], browserName: 'chromium', launchOptions: { args: ['--mute-audio'] } } },
-    // The iOS engine: the update flow must hold under WebKit too (#10). Only the update spec runs here.
-    { name: 'webkit', testMatch: 'update.spec.ts', use: { ...devices['iPhone 13'] } },
+    // The iOS engine: the update flow (#10) and the automation mute must hold under WebKit too. Only those specs run here.
+    { name: 'webkit', testMatch: ['update.spec.ts', 'audio.spec.ts'], use: { ...devices['iPhone 13'] } },
   ],
   webServer: {
     command: `npm run build && npm run preview -- --port ${PORT} --strictPort --host 127.0.0.1`,
