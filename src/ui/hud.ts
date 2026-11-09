@@ -33,7 +33,7 @@ export interface HudDeps {
 }
 
 /** Screen-space inset (px) the bus arrow keeps from the HUD panels at the top and bottom. */
-const ARROW_INSET = { x: 34, top: 150, bottom: 190 } as const;
+const ARROW_INSET = { x: 34, top: 200, bottom: 150 } as const;
 
 export function mountHud(deps: HudDeps): Hud {
   const root = el('div', 'hud');
